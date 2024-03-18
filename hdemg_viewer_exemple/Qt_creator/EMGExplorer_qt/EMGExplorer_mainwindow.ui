@@ -194,7 +194,7 @@
                      <enum>QToolButton::InstantPopup</enum>
                     </property>
                     <property name="toolButtonStyle">
-                     <enum>Qt::ToolButtonIconOnly</enum>
+                     <enum>Qt::ToolButtonTextOnly</enum>
                     </property>
                     <property name="autoRaise">
                      <bool>false</bool>
@@ -483,6 +483,7 @@
      <string>Analysis</string>
     </property>
     <addaction name="actionRun_Analysis"/>
+    <addaction name="actionOpen_Analysis"/>
    </widget>
    <addaction name="menufiles"/>
    <addaction name="menuFilter"/>
@@ -547,6 +548,11 @@
   <action name="actionManage">
    <property name="text">
     <string>Manage</string>
+   </property>
+  </action>
+  <action name="actionOpen_Analysis">
+   <property name="text">
+    <string>Open Analysis</string>
    </property>
   </action>
  </widget>
