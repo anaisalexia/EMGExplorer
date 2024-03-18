@@ -3,6 +3,8 @@ from Explorer_package import *
 import Explorer_package as exp
 from PyQt5.QtCore import Qt
 
+
+
 class Canvas(FigureCanvasQTAgg):
     def __init__(self):
         self.fig = Figure()
@@ -13,6 +15,7 @@ class Canvas(FigureCanvasQTAgg):
     def clear(self):
         self.fig.clear()
 
+
 class EMGExplorer(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -20,16 +23,27 @@ class EMGExplorer(QMainWindow):
 
         self.actiontype_1.triggered.connect(self.oc_actiontype1)
 
+        self.menu = QMenu()
+        self.menu.addAction("Delete",self.oc_action1)
+        self.menu.addAction("Split",self.oc_action1)
+        self.menu_type = QMenu('Change type')
+        self.menu_type.addAction("type1",self.oc_action1)
+        self.menu_type.addAction("type2",self.oc_action1)
+        self.menu.addMenu(self.menu_type)
+
+        self.toolButton.setMenu(self.menu)
         self.show()
 
+    def oc_action1(self):
+        self.oc_actiontype1()
 
     def oc_actiontype1(self):
         self.dock = QDockWidget('dock',self)
         self.listWidget=QListWidget()
-        self.listWidget.addItem('Item1')
-        self.listWidget.addItem('Item2')
-        self.listWidget.addItem('Item3')
-        self.listWidget.addItem('Item4')
+        # self.listWidget.addItem('Item1')
+        # self.listWidget.addItem('Item2')
+        # self.listWidget.addItem('Item3')
+        # self.listWidget.addItem('Item4')
 
         self.dock.setWidget(self.listWidget)
         self.dock.setFloating(False)
