@@ -3,3 +3,6 @@ hdemg_viewer_exemple/
 
 # ignore the data
 data/
+
+# except
+!hdemg_viewer_exemple/Qt_creator/EMGExplorer_qt/EMGExplorer_mainwindow.ui
