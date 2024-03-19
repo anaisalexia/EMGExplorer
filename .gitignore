@@ -1,6 +1,8 @@
 # ignore the exemple
 hdemg_viewer_exemple/
 !hdemg_viewer_exemple/Qt_creator/EMGExplorer_qt/EMGExplorer_mainwindow.ui
+!hdemg_viewer_exemple/Qt_creator/EMGExplorer_qt/GraphParameters.ui
+!hdemg_viewer_exemple/Qt_creator/EMGExplorer_qt/AnalysisWin.ui
 
 # ignore the data
 data/

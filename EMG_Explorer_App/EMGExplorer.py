@@ -3,7 +3,22 @@ from Explorer_package import *
 import Explorer_package as exp
 from PyQt5.QtCore import Qt
 
+class NewFilterWindow(QWidget):
 
+    # automatic name after preprocessing function + nb of the step
+    # param : add, delete, change position
+
+    def __init__(self):
+        super().__init__()
+        # self.parent = parent
+        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\GraphParameters.ui', self)
+
+class SummaryWindow(QWidget):
+
+    def __init__(self):
+        super().__init__()
+        # self.parent = parent
+        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\AnalysisWin.ui', self)
 
 class Canvas(FigureCanvasQTAgg):
     def __init__(self):
@@ -20,8 +35,12 @@ class EMGExplorer(QMainWindow):
     def __init__(self):
         super().__init__()
         loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\EMGExplorer_mainwindow.ui', self)
+        self.w = None
+        self.wnewFilter = None
 
         self.actiontype_1.triggered.connect(self.oc_actiontype1)
+        self.actionNew.triggered.connect(self.oc_newFilter)
+        self.actionRun_Analysis.triggered.connect(self.oc_newSummary)
 
         self.menu = QMenu()
         self.menu.addAction("Delete",self.oc_action1)
@@ -33,6 +52,35 @@ class EMGExplorer(QMainWindow):
 
         self.toolButton.setMenu(self.menu)
         self.show()
+
+        self.time = np.arange(100)
+        self.signal = np.random.random(100)
+        
+        self.verticalLayout_2.addWidget(Canvas())
+        self.verticalLayout_4.addWidget(Canvas())
+        self.verticalLayout_11.addWidget(Canvas())
+
+        self.treeWidget.itemDoubleClicked.connect(self.oc_itemPressed)
+
+    def oc_newFilter(self):
+        if self.wnewFilter is None:
+            self.wnewFilter = NewFilterWindow()
+        self.wnewFilter.show()
+
+    def oc_newSummary(self):
+        if self.w is None:
+            self.w = SummaryWindow()
+        self.w.show()
+        
+
+
+    def oc_itemPressed(self, item, int_col):
+        if int_col!=0:
+            text, ok = QInputDialog().getText(self, "input",
+                                            "data:", QLineEdit.Normal,
+                                     item.text(int_col))
+            if ok and text:
+                item.setText(int_col,text)
 
     def oc_action1(self):
         self.oc_actiontype1()
