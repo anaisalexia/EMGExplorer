@@ -59,9 +59,21 @@ class EMGExplorer(QMainWindow):
 
         self.signal = np.random.random(100)
         
-        self.verticalLayout_2.addWidget(Canvas())
         self.verticalLayout_4.addWidget(Canvas())
         self.verticalLayout_11.addWidget(Canvas())
+
+        # win = pg.GraphicsLayoutWidget(show=True, title="Basic plotting examples")
+        self.win = pg.MultiPlotWidget()
+
+        self.p2 = self.win.addPlot(title="Multiple curves")
+        self.p2.plot(np.random.normal(size=100), pen=(255,0,0), name="Red curve")
+        self.p2.plot(np.random.normal(size=110)+5, pen=(0,255,0), name="Green curve")
+        self.win.setBackground("w")
+        self.p2.showGrid(x=True, y=True)
+
+
+        self.verticalLayout_2.addWidget(self.win)
+
 
         self.treeWidget.itemDoubleClicked.connect(self.oc_itemPressed)
         
