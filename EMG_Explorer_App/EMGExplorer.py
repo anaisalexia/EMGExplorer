@@ -51,9 +51,12 @@ class EMGExplorer(QMainWindow):
         self.menu.addMenu(self.menu_type)
 
         self.toolButton.setMenu(self.menu)
+        self.restoreSettings()
+
         self.show()
 
         self.time = np.arange(100)
+
         self.signal = np.random.random(100)
         
         self.verticalLayout_2.addWidget(Canvas())
@@ -61,6 +64,8 @@ class EMGExplorer(QMainWindow):
         self.verticalLayout_11.addWidget(Canvas())
 
         self.treeWidget.itemDoubleClicked.connect(self.oc_itemPressed)
+        
+       
 
     def oc_newFilter(self):
         if self.wnewFilter is None:
@@ -87,6 +92,7 @@ class EMGExplorer(QMainWindow):
 
     def oc_actiontype1(self):
         self.dock = QDockWidget('dock',self)
+        self.dock.objectName = 'dock1'
         self.listWidget=QListWidget()
         # self.listWidget.addItem('Item1')
         # self.listWidget.addItem('Item2')
@@ -97,11 +103,71 @@ class EMGExplorer(QMainWindow):
         self.dock.setFloating(False)
         self.addDockWidget(Qt.RightDockWidgetArea,self.dock)
 
+    def restoreSettings(self):
+        name_folder = 'ExplorerEMG'
+        name_seting = 'MyLayout'
+        name_layout = 'namelayout'
+        settings = QSettings(name_folder, name_seting)
+
+        # geometry = settings.value("geometry", QByteArray()).toByteArray()
+        geometry = settings.value("geometry", QByteArray())
+        self.restoreGeometry(geometry)
+        state = settings.value("windowState", QByteArray())
+        self.restoreState(state)
+
+        print(settings)
+        for splitter in self.findChildren(QSplitter):
+            try:
+                splitterSettings=settings.value(splitter.objectName())
+                if splitterSettings:
+                    splitter.restoreState(splitterSettings)
+                    print('splitter_restored')
+            except Exception as e:
+                print(e)
+            
+        print('setting restored')
+
+        # restoreState()
+
+
+
+    def closeEvent(self, event):
+        #save layout
+        name_folder = 'ExplorerEMG'
+        name_seting = 'MyLayout'
+        name_layout = 'namelayout'
+        settings = QSettings(name_folder, name_seting)
+        print(settings.fileName())
+        settings.setValue("geometry", self.saveGeometry())
+        settings.setValue("windowState", self.saveState())
+
+        for splitter in self.findChildren(QSplitter):
+            splitterSettings=splitter.saveState()
+            if splitterSettings:
+                settings.setValue(splitter.objectName(), splitter.saveState()) 
+
+        # self.closeEvent(self, event)
+        # config_data_dir = Path(f"{name_folder}/{name_seting}")
+
+        # license_file = QStandardPaths.writableLocation( QStandardPaths.AppConfigLocation) / config_data_dir / name_layout
+        
+        
+
+        print('state saved')
+            # if maybeSave():
+            #     writeSettings()
+            #     event.accept()
+            # else:
+            #     event.ignore()
+
 
 def main():
     app = QApplication(sys.argv)
     ex = EMGExplorer()
     ex.raise_()
+    # QWidget.saveGeometry saves the geometry of an widget.
+#     QMainWindow.saveState saves the window's toolbars and dockwidgets.
+# To save other things you can use pickle.
     sys.exit(app.exec_())
 
 
