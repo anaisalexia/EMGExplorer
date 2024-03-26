@@ -3,6 +3,13 @@ from Explorer_package import *
 import Explorer_package as exp
 from PyQt5.QtCore import Qt
 
+
+class Layout(QWidget):
+    def __init__(self,nb,nb_v=1):
+        super().__init__()
+        loadUi(f'hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\Layout{nb}_{nb_v}.ui', self)
+
+
 class NewFilterWindow(QWidget):
 
     # automatic name after preprocessing function + nb of the step
@@ -34,14 +41,31 @@ class Canvas(FigureCanvasQTAgg):
 class EMGExplorer(QMainWindow):
     def __init__(self):
         super().__init__()
-        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\EMGExplorer_mainwindow.ui', self)
+        # Loading of the UI
+        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\EMGExplorer_mainwindow_base.ui', self)
+
+        # Initialisation of variables
         self.w = None
         self.wnewFilter = None
+        self.layout = Layout(3,1)
+        # Restores the previous state of the app
+        self.restoreSettings()
 
+
+        ## MENU
+        # Definition of the action
         self.actiontype_1.triggered.connect(self.oc_actiontype1)
         self.actionNew.triggered.connect(self.oc_newFilter)
         self.actionRun_Analysis.triggered.connect(self.oc_newSummary)
 
+        self.action4_windows.triggered.connect(partial(self.oc_update_layout_graph,4,1))
+        self.action3_windows.triggered.connect(partial(self.oc_update_layout_graph,3,1))
+
+        # Information window
+        self.treeWidget.itemDoubleClicked.connect(self.oc_itemPressed)
+
+        ## Windows Parameters
+        # Definition of the button Parameters ...
         self.menu = QMenu()
         self.menu.addAction("Delete",self.oc_action1)
         self.menu.addAction("Split",self.oc_action1)
@@ -51,38 +75,76 @@ class EMGExplorer(QMainWindow):
         self.menu.addMenu(self.menu_type)
 
         self.toolButton.setMenu(self.menu)
-        self.restoreSettings()
+        self.nb_layout = 3
+        self.nb_version = 1
+
+        ## GRAPH
+
+        self.time = np.arange(100)
+        self.signal = np.random.random(100)
+
+        self.list_layout_graph()
+        self.initialize_layout_graph()
+
+       
+        # self.p2.plot(np.random.normal(size=100), pen=(255,0,0), name="Red curve")
+        # self.p2.showGrid(x=True, y=True)
 
         self.show()
 
-        self.time = np.arange(100)
 
-        self.signal = np.random.random(100)
+
+    def list_layout_graph(self):
+        """Updates the variable dict_layout_graph
+        Create a dictionnary with the layout that can be used to display graphs
+        """
+        self.dict_layout_graph = {}
+        i = 0
+        for frame in self.layout.findChildren(QFrame):
+            print(frame.objectName())
+            if 'graph' in frame.objectName().split('_'):
+                self.dict_layout_graph[i] = QGridLayout(frame)
+                i += 1
+                # self.dict_layout[i].setObjectName(u"gridLayout")
+
+
         
-        self.verticalLayout_4.addWidget(Canvas())
-        self.verticalLayout_11.addWidget(Canvas())
-
-        # win = pg.GraphicsLayoutWidget(show=True, title="Basic plotting examples")
-        self.win = pg.MultiPlotWidget()
-
-        self.p2 = self.win.addPlot(title="Multiple curves")
-        self.p2.plot(np.random.normal(size=100), pen=(255,0,0), name="Red curve")
-        self.p2.plot(np.random.normal(size=110)+5, pen=(0,255,0), name="Green curve")
-        self.win.setBackground("w")
-        self.p2.showGrid(x=True, y=True)
+    def initialize_layout_graph(self):
+        """Initialize/ create the graph and put them in the layouts of dict_layout_graph
+        """
+        self.dict_displayed_graph = {}     
+        for id,layout in self.dict_layout_graph.items():
+            self.dict_displayed_graph[id] = { 'window': pg.MultiPlotWidget()}
+            self.dict_displayed_graph[id]['window'].setBackground("w")
+            layout.addWidget(self.dict_displayed_graph[id]['window'])
+            self.dict_displayed_graph[id]['plot1'] = self.dict_displayed_graph[id]['window'].addPlot(title=f'graph {id}')
 
 
-        self.verticalLayout_2.addWidget(self.win)
-
-
-        self.treeWidget.itemDoubleClicked.connect(self.oc_itemPressed)
+                        
         
-       
+    def oc_update_layout_graph(self,nb,nb_v):
+        """Changes the layout of of the graphs
+
+        Args:
+            nb (int): number of graphs
+            nb_v (int): number cooresponding to the layout of the graphs
+        """
+        self.gridLayout_3.removeWidget(self.layout)
+        self.layout.deleteLater()
+        self.nb_layout = nb
+        self.nb_version = nb_v
+        self.layout = Layout(nb,nb_v)
+        self.gridLayout_3.addWidget(self.layout)
+
+
+
 
     def oc_newFilter(self):
         if self.wnewFilter is None:
             self.wnewFilter = NewFilterWindow()
         self.wnewFilter.show()
+
+
 
     def oc_newSummary(self):
         if self.w is None:
@@ -99,35 +161,44 @@ class EMGExplorer(QMainWindow):
             if ok and text:
                 item.setText(int_col,text)
 
+
+
     def oc_action1(self):
         self.oc_actiontype1()
+
+
 
     def oc_actiontype1(self):
         self.dock = QDockWidget('dock',self)
         self.dock.objectName = 'dock1'
         self.listWidget=QListWidget()
-        # self.listWidget.addItem('Item1')
-        # self.listWidget.addItem('Item2')
-        # self.listWidget.addItem('Item3')
-        # self.listWidget.addItem('Item4')
 
         self.dock.setWidget(self.listWidget)
         self.dock.setFloating(False)
         self.addDockWidget(Qt.RightDockWidgetArea,self.dock)
 
+
+
     def restoreSettings(self):
+        """Restores the last state of the app
+        """
         name_folder = 'ExplorerEMG'
         name_seting = 'MyLayout'
-        name_layout = 'namelayout'
+
         settings = QSettings(name_folder, name_seting)
 
-        # geometry = settings.value("geometry", QByteArray()).toByteArray()
+        # restore general layout and window state
         geometry = settings.value("geometry", QByteArray())
         self.restoreGeometry(geometry)
         state = settings.value("windowState", QByteArray())
         self.restoreState(state)
 
-        print(settings)
+        self.nb_layout = settings.value("nb_layout", QByteArray())
+        self.nb_version = settings.value("nb_version", QByteArray())
+        self.layout = Layout(self.nb_layout,self.nb_version)
+        self.gridLayout_3.addWidget(self.layout)
+
+        # restore splitters state
         for splitter in self.findChildren(QSplitter):
             try:
                 splitterSettings=settings.value(splitter.objectName())
@@ -139,47 +210,43 @@ class EMGExplorer(QMainWindow):
             
         print('setting restored')
 
-        # restoreState()
-
 
 
     def closeEvent(self, event):
-        #save layout
+        """Function triggered when the mainwindow is closed
+
+        Args:
+            event ( ): event
+        """
         name_folder = 'ExplorerEMG'
-        name_seting = 'MyLayout'
-        name_layout = 'namelayout'
+        name_seting = 'MyLayout'        
         settings = QSettings(name_folder, name_seting)
-        print(settings.fileName())
+
+        # save general layout and window states
         settings.setValue("geometry", self.saveGeometry())
         settings.setValue("windowState", self.saveState())
+        settings.setValue("nb_layout",self.nb_layout)
+        settings.setValue("nb_version",self.nb_version)
 
+        # save splitters state
         for splitter in self.findChildren(QSplitter):
             splitterSettings=splitter.saveState()
             if splitterSettings:
                 settings.setValue(splitter.objectName(), splitter.saveState()) 
 
-        # self.closeEvent(self, event)
-        # config_data_dir = Path(f"{name_folder}/{name_seting}")
+        # save tabs state
+                
 
-        # license_file = QStandardPaths.writableLocation( QStandardPaths.AppConfigLocation) / config_data_dir / name_layout
-        
-        
+        # save docks state
 
-        print('state saved')
-            # if maybeSave():
-            #     writeSettings()
-            #     event.accept()
-            # else:
-            #     event.ignore()
+        
 
 
 def main():
     app = QApplication(sys.argv)
     ex = EMGExplorer()
     ex.raise_()
-    # QWidget.saveGeometry saves the geometry of an widget.
-#     QMainWindow.saveState saves the window's toolbars and dockwidgets.
-# To save other things you can use pickle.
+
     sys.exit(app.exec_())
 
 
@@ -189,64 +256,6 @@ if __name__ == '__main__':
 
 
 
-# class Example(QWidget):
-#     def __init__(self):
-#         super(Example, self).__init__()
-#         self.initUI()
-
-#     def initUI(self):
-#         hbox = QHBoxLayout(self)
-
-#         topleft = QFrame()
-#         topleft.setFrameShape(QFrame.StyledPanel)
-#         bottom = QFrame()
-#         bottom.setFrameShape(QFrame.StyledPanel)
-
-#         splitter1 = QSplitter(Qt.Horizontal)
-#         textedit = QTextEdit()
-#         splitter1.addWidget(topleft)
-#         splitter1.addWidget(textedit)
-#         splitter1.setSizes([100,200])
-
-#         splitter2 = QSplitter(Qt.Vertical)
-#         splitter2.addWidget(splitter1)
-#         splitter2.addWidget(bottom)
-
-#         hbox.addWidget(splitter2)
-
-#         self.setLayout(hbox)
-#         QApplication.setStyle(QStyleFactory.create('Cleanlooks'))
-
-#         self.setGeometry(300, 300, 300, 200)
-#         self.setWindowTitle('QSplitter demo')
-#         self.show()
-
-# def main():
-#    app = QApplication(sys.argv)
-#    ex = Example()
-#    sys.exit(app.exec_())
-	
-# if __name__ == '__main__':
-#    main()
-
-
-# class MainWindow(QMainWindow):
-#     # passer les parametres du threshold de defaut dans la creation de la fenetre
-#     #ajouter mode de traitement
-
-#     def __init__(self):
-#         super(MainWindow, self).__init__()
-
-#         # self.window = QMainWindow()
-#         loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\EMGExplorer_mainwindow.ui', self)
-#         self.show()
-
-
-# app = QApplication(sys.argv)
-# w = MainWindow()
-# app.exec_()
-
-#https://stackoverflow.com/questions/28309376/how-to-manage-qsplitter-in-qt-designer 
 
 
 
