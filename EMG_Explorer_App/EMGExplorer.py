@@ -1,7 +1,8 @@
 # from Explorer_package.requirement import *
 from Explorer_package import *
-import Explorer_package as exp
+from Explorer_package.loading_function import *
 from PyQt5.QtCore import Qt
+import os
 
 
 class Layout(QWidget):
@@ -42,14 +43,18 @@ class EMGExplorer(QMainWindow):
     def __init__(self):
         super().__init__()
         # Loading of the UI
-        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\EMGExplorer_mainwindow_base.ui', self)
+        loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\EMGExplorer_mainwindow_base.ui', self)
 
         # Initialisation of variables
         self.w = None
         self.wnewFilter = None
         self.layout = Layout(3,1)
+        self.dock = {}
         # Restores the previous state of the app
         self.restoreSettings()
+
+        #
+        self.data = {}
 
 
         ## MENU
@@ -57,13 +62,14 @@ class EMGExplorer(QMainWindow):
         self.actiontype_1.triggered.connect(self.oc_actiontype1)
         self.actionNew.triggered.connect(self.oc_newFilter)
         self.actionRun_Analysis.triggered.connect(self.oc_newSummary)
+        self.actionLoad.triggered.connect(self.oc_load_files)
 
         self.action4_windows.triggered.connect(partial(self.oc_update_layout_graph,4,1))
         self.action3_windows.triggered.connect(partial(self.oc_update_layout_graph,3,1))
 
         # Information window
         self.treeWidget.itemDoubleClicked.connect(self.oc_itemPressed)
-
+        
         ## Windows Parameters
         # Definition of the button Parameters ...
         self.menu = QMenu()
@@ -83,25 +89,43 @@ class EMGExplorer(QMainWindow):
         self.time = np.arange(100)
         self.signal = np.random.random(100)
 
-        self.list_layout_graph()
+        self.update_list_layout_graph()
         self.initialize_layout_graph()
 
        
         # self.p2.plot(np.random.normal(size=100), pen=(255,0,0), name="Red curve")
         # self.p2.showGrid(x=True, y=True)
-
+        self.interactivity_fileSystem()
         self.show()
 
+    # class Mylayout(QGridLayout):
+    #     def __init__(self, parent):
+    #         QGridLayout.__init__(self, parent)
+    #         print("c")
 
+    
+    #     def mousePressEvent(self, event):
+    #             print("clicked")
+    #             event.accept()
+    class MyMultiPlotWidget(pg.MultiPlotWidget):
+        def __init__(self,parent):
+            pg.MultiPlotWidget.__init__(self)
+            self.parent = parent
 
-    def list_layout_graph(self):
+    
+        def mouseDoubleClickEvent(self, event):
+            print("clicked")
+            self.parent.label_5.setText(str(np.random.randn()))
+            event.accept()
+
+    def update_list_layout_graph(self):
         """Updates the variable dict_layout_graph
-        Create a dictionnary with the layout that can be used to display graphs
+        Create a dictionnary with the layout that can be used to display graphs 
+        { id : Gridlayout}
         """
         self.dict_layout_graph = {}
         i = 0
         for frame in self.layout.findChildren(QFrame):
-            print(frame.objectName())
             if 'graph' in frame.objectName().split('_'):
                 self.dict_layout_graph[i] = QGridLayout(frame)
                 i += 1
@@ -110,31 +134,54 @@ class EMGExplorer(QMainWindow):
 
         
     def initialize_layout_graph(self):
-        """Initialize/ create the graph and put them in the layouts of dict_layout_graph
+        """Initialize/ create the graph and put them in the layouts of dict_layout_graph.
+        windows : pg plotwidget
+        plot x = plot
         """
         self.dict_displayed_graph = {}     
         for id,layout in self.dict_layout_graph.items():
-            self.dict_displayed_graph[id] = { 'window': pg.MultiPlotWidget()}
+            self.dict_displayed_graph[id] = { 'window': self.MyMultiPlotWidget(self)}
             self.dict_displayed_graph[id]['window'].setBackground("w")
             layout.addWidget(self.dict_displayed_graph[id]['window'])
             self.dict_displayed_graph[id]['plot1'] = self.dict_displayed_graph[id]['window'].addPlot(title=f'graph {id}')
+            # self.dict_displayed_graph[id]['window'].mousePressEvent.connect(lambda: print('cooooooooo'))
 
+    # def update_layout_graph(self):
+    #     """update the graph displayed
+    #     create new ones if there are not enough graph 
+    #     """
+    #     nb_displayed = len(self.dict_displayed_graph)
+    #     nb_frame = len(self.dict_layout_graph)
+    #     if nb_frame > nb_displayed:
+    #         for id in self.dict_layout_graph.keys()[-(nb_frame-nb_displayed):]:
+    #             layout = self.dict_layout_graph[id]
+    #             self.dict_displayed_graph[id] = { 'window': pg.MultiPlotWidget()}
+    #             self.dict_displayed_graph[id]['window'].setBackground("w")
+    #             layout.addWidget(self.dict_displayed_graph[id]['window'])
+    #             self.dict_displayed_graph[id]['plot1'] = self.dict_displayed_graph[id]['window'].addPlot(title=f'graph {id}')
 
                         
         
     def oc_update_layout_graph(self,nb,nb_v):
-        """Changes the layout of of the graphs
+        """Changes the layout of of the graphs. update the displayed plot
 
         Args:
             nb (int): number of graphs
             nb_v (int): number cooresponding to the layout of the graphs
         """
+        # update the number of windows in the graph
         self.gridLayout_3.removeWidget(self.layout)
         self.layout.deleteLater()
         self.nb_layout = nb
         self.nb_version = nb_v
         self.layout = Layout(nb,nb_v)
         self.gridLayout_3.addWidget(self.layout)
+
+        # update the list of the frames used to display graph
+        self.update_list_layout_graph()
+
+
+
 
 
 
@@ -169,16 +216,24 @@ class EMGExplorer(QMainWindow):
 
 
     def oc_actiontype1(self):
-        self.dock = QDockWidget('dock',self)
-        self.dock.objectName = 'dock1'
-        self.listWidget=QListWidget()
+        self.dock[self.nb_dock] = QDockWidget('dock',self)
+        self.dock[self.nb_dock].setObjectName(f'dock {self.nb_dock}')
 
-        self.dock.setWidget(self.listWidget)
-        self.dock.setFloating(False)
-        self.addDockWidget(Qt.RightDockWidgetArea,self.dock)
+        self.dock[self.nb_dock].visibilityChanged.connect(partial(self.oc_visibility,self.nb_dock))
+        self.dock[self.nb_dock].setFloating(False)
+        self.addDockWidget(Qt.RightDockWidgetArea,self.dock[self.nb_dock])
+        self.nb_dock +=1
 
 
+    def oc_visibility(self,dock,visibility):
+        #### !! PB: error bc called when the win closes
+        if not visibility:
+            self.removeDockWidget(self.dock[dock])
+            self.dock[dock].deleteLater()
+            del self.dock[dock]
+            # self.widget_name = None
 
+    
     def restoreSettings(self):
         """Restores the last state of the app
         """
@@ -204,11 +259,26 @@ class EMGExplorer(QMainWindow):
                 splitterSettings=settings.value(splitter.objectName())
                 if splitterSettings:
                     splitter.restoreState(splitterSettings)
-                    print('splitter_restored')
             except Exception as e:
                 print(e)
+
+        #restore dock
+        self.nb_dock = 0
+        while(True):
+
+            dockSetting = settings.value(f'dock {self.nb_dock}')
+
+            if dockSetting:
+                self.dock[self.nb_dock] = QDockWidget(f'dock {self.nb_dock}',self)
+                self.dock[self.nb_dock].setObjectName(f'dock {self.nb_dock}')
+
+                self.dock[self.nb_dock].visibilityChanged.connect(partial(self.oc_visibility,self.nb_dock))
+                self.addDockWidget(Qt.RightDockWidgetArea,self.dock[self.nb_dock])
+                self.dock[self.nb_dock].restoreGeometry(dockSetting)                    
+                self.nb_dock += 1
+            else:
+                break
             
-        print('setting restored')
 
 
 
@@ -221,6 +291,7 @@ class EMGExplorer(QMainWindow):
         name_folder = 'ExplorerEMG'
         name_seting = 'MyLayout'        
         settings = QSettings(name_folder, name_seting)
+        settings.clear()
 
         # save general layout and window states
         settings.setValue("geometry", self.saveGeometry())
@@ -234,11 +305,118 @@ class EMGExplorer(QMainWindow):
             if splitterSettings:
                 settings.setValue(splitter.objectName(), splitter.saveState()) 
 
-        # save tabs state
+        # save dock state
+        i = 0
+        for id,dock in self.dock.items():
+            dockSettings = dock.saveGeometry()
+            if dockSettings:
+                settings.setValue(f'dock {i}', dock.saveGeometry()) 
+                i += 1
+
+
+        # save tab state
+
+
+
+    ## FILE SYSTEM
                 
+    def update_fileSystem_comboBox_Group(self):
+        """Add the group paths to the comboBox
+        """
+        # remove previous items
+        self.comboBox_group.clear()
 
-        # save docks state
+        # select current Item
+        selected_file = self.listWidget_file.currentItem()
+        if selected_file == None:
+            self.listWidget_file.setCurrentRow(0)
+        
+        selected_file = self.listWidget_file.currentItem().text()
 
+        for dict_group in self.data[selected_file]['path_data'].keys():
+            self.comboBox_group.addItem(dict_group)
+
+
+    def update_fileSystem_comboBox_Variable(self):
+
+        """Add the data variables that matches the selected group in the comboBox
+        """
+        # remove previous items
+        self.comboBox_variable.clear()
+
+        data = self.data[self.listWidget_file.currentItem().text()]['data']
+        group = self.comboBox_group.currentText()
+
+        for var in list(data[group].data_vars):
+            self.comboBox_variable.addItem(var)
+
+
+    def oc_ListWidget_change(self,item):        
+        last_selection = self.comboBox_group.currentText()
+        self.update_fileSystem_comboBox_Group()
+        self.comboBox_group.setCurrentIndex(np.max([0,self.comboBox_group.findText(last_selection)])) 
+        # find TExt return -1 if there is no match
+
+        # update comboBox variable
+        self.oc_comboBox_group_change()
+        self.oc_comboBox_variable_change()
+       
+
+    def oc_comboBox_group_change(self,):
+        last_selection = self.comboBox_variable.currentText()
+        self.update_fileSystem_comboBox_Variable()
+        self.comboBox_variable.setCurrentIndex(np.max([0,self.comboBox_variable.findText(last_selection)]))
+
+
+    def oc_comboBox_variable_change(self,):
+        self.comboBox_dim.clear()
+        self.data_array = self.data[self.listWidget_file.currentItem().text()]['data'][self.comboBox_group.currentText()][self.comboBox_variable.currentText()]
+
+        dims = list(self.data_array.dims)
+        for t in ['Time','time']:
+            try:
+                dims.remove(t)
+            except:
+                pass
+
+        if len(dims) != 0:
+            dim_name = dims[0] # could be replace by a list of the dims if more than 2
+
+            self.label_timeline_dim.setText(dim_name)
+            for item in self.data_array[dim_name].values:
+                self.comboBox_dim.addItem(str(item))
+        else:
+            self.label_timeline_dim.setText('no dim')
+            self.comboBox_dim.addItem('None')
+
+
+
+
+
+    
+    def interactivity_fileSystem(self):
+        self.listWidget_file.currentItemChanged.connect(self.oc_ListWidget_change)
+        self.comboBox_group.textActivated.connect(self.oc_comboBox_group_change)
+        self.comboBox_variable.textActivated.connect(self.oc_comboBox_variable_change)
+
+
+
+
+    def oc_load_files(self):
+        # load the paths
+        files,extension = QFileDialog.getOpenFileNames(self, 'Open file',  'C:\\Users\\mtlsa\\Documents\\UTC\\GB05\\TX\\Python_EMGExplorer\\data',"Nc files (*.nc )")
+        # files.setFileMode(QFileDialog.FileMode.ExistingFiles)
+
+        
+        self.data = load_multiple_nc_files(files)
+
+        # update the list
+        for name in self.data.keys():
+            self.listWidget_file.addItem(name)
+
+        # update the data at hand
+        self.update_fileSystem_comboBox_Group()
+        self.update_fileSystem_comboBox_Variable()
         
 
 
