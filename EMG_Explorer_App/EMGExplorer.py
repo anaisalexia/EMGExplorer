@@ -58,21 +58,21 @@ class OneGraph():
     def oc_Buttonclick(self):
         """Opens the menu of the current box
         """
-        self.add_ui_to_layout()
+        self.add_paramUi_to_layout()
 
     def oc_comboBox_type_change(self):
         """Changes the graph of the current box
         """
         self.setPlot(PLOT[self.ui_parameters.comboBox_type.currentText()])
-        self.add_graph_to_layout()
+        self.add_graphUi_to_layout()
 
-    def add_ui_to_layout(self):
+    def add_paramUi_to_layout(self):
         """Changes the settings of the graph
         """
         deleteItemsOfLayout(self.layout_parameters)
         self.layout_parameters.addWidget(self.ui_parameters)
 
-    def add_graph_to_layout(self):
+    def add_graphUi_to_layout(self):
         """add a graph to the box
         """
         deleteItemsOfLayout(self.layout_graph)

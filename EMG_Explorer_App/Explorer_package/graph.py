@@ -24,35 +24,35 @@ class LayoutParameters2(QWidget):
 
     
 
-class MyMultiPlotWidget2(pg.MultiPlotWidget):
-        def __init__(self,i):
-            pg.MultiPlotWidget.__init__(self)
-            self.id = i
-            self.plot = self.addPlot(title=f'graph {self.id}')
-
-        def clear():
-            pass
-
-        def mouseDoubleClickEvent(self, event):
-            event.accept()
-            
 
 
-
-
-class PlotGeneral(MyMultiPlotWidget2):
+class PlotGeneral(ABC):
      
     def __init__(self,layout,layout_graph,i,parent):
-        super().__init__(i)
+        
+        self.id = i
+
         self.layout = layout
         self.layout_graph = layout_graph
         self.parent = parent
 
+    @abstractmethod
+    def draw(self):
+        pass
+
+    @abstractmethod
+    def clear(self):
+        pass
+
       
   
 
-class PlotLine(PlotGeneral):
+class PlotLine(PlotGeneral,pg.MultiPlotWidget):
+
     def __init__(self, layout, layout_graph, i, parent):
+        PlotGeneral.__init__(self,layout, layout_graph, i, parent)
+        pg.MultiPlotWidget.__init__(self)
+
         self.l = LayoutParameters()
         self.function = 'lineplot'
         super().__init__(layout, layout_graph, i, parent)
@@ -67,13 +67,17 @@ class PlotLine(PlotGeneral):
     def clear(self):
         self.fig.clear()
 
-class FFT(PlotGeneral):
+
+
+class FFT(PlotGeneral,pg.MultiPlotWidget):
      
     def __init__(self, layout, layout_graph, i, parent):
+        PlotGeneral.__init__(self,layout, layout_graph, i, parent)
+        pg.MultiPlotWidget.__init__(self)
+    
         self.l = LayoutParameters2()
         self.function = 'fft'
 
-        super().__init__(layout, layout_graph, i, parent)
 
 
 
@@ -104,3 +108,7 @@ PLOT = {
     'fft':FFT,
     'plotline':PlotLine
 }
+
+# Emplacement -> type de widget
+# type de widget -> Graph
+# Graph -> setting du graph

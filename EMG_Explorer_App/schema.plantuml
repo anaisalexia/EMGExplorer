@@ -67,88 +67,84 @@ end note
 
 
 
-class MyPlot{
-    {ex: scatter, lineplot, boxplot ...}
-}
-
-' class MyMultiPlotWidget{
-'     - id 
-'     - parent {MainWindow}
-'     - plot
-'     - parameters
-' }
 
 MainWindow::dict_layout --> Layout_Graph
-MainWindow::dict_display  --->"*" MyPlottingWidgets
 MainWindow::data  -> dict_correspondance_format_dataloader
 dict_correspondance_format_dataloader --> MyDataLoader
+MainWindow::dict_display  --->"*" OneGraph
 
 
-' type_of_plot --> MyMultiPlotWidget : if timeseries
-' type_of_plot --> MyCanvasMatPlt : if statistic
-
-' MyCanvasMatPlt --|> Matplotlib_Canvas : inheritance
-' MyMultiPlotWidget --|> pg_MultiPlotWidget : inheritance
-
-
-
-package MyPlottingWidgets <<Rectangle>> {
-
-class MyPlot(layout(s)){
-    {eg: lineplot, heatmap,...}
-    - main_function
-    - widget_canvas
-    - layout_parameters {.ui }
-    - setting {saves the setting chosen with layout parameters}
-    - init_interactivity() {according to canvas type and layout_parameters}
-}
-'Il pourrait y avoir une classe type pour ploter les timeseries par exemple
-'classe de laquelle pourraient dériver, des plots comme, lineplot,psd
-
-
-object dict_typeOfPlot_MyPlot
-
-class PlotWidget{
-    - windows/plt/canvas {eg: Canvas matplolib or pg.plotwidget}
-    - update_data(new_data)
-    - clear_figure()
+class OneGraph{
+    -id
+    -parent
+    -ui_graph
+    -ui_parameters
+    -layout_graph { button }
+    -layout_parameters
+    - oc_clickButton()
+    - oc_comboBox_type_changed()
+    -add_paramUi_to_layout()
+    -add_graphUi_to_layout()
+    -add_setting_to_param()
+    -setPlot()
 }
 
-class layout_parameters{
-    - load_ui()
+class Layout_Paramerters_Type{
+    {inherits from QWidget}
+    -layout_setting
+    -loadUI()
 }
-note right
-Comment lier l'affichage des parametres au type de graph ?
-Comment sauvegarder les settings et y avoir accès
-Comment implémenter les actions des settings
-end note
 
-object layout_parameters_settings
-class Event{
-    {take all function that interacts simultaneously with the layout 
-    and the figure}
+
+class LayoutSettingfft{
+    {inherits from Qwidget}
+    -loadUI()
+    -setInteractivity()
 }
-note right of Event
-there are events specific to Canvas
-and events specific to pg
 
-Comment choisir les bons events ?
-end note
-
-type_of_plot ..> PlotWidget : determines
-type_of_plot ..> layout_parameters : determines
-PlotWidget ..> Event : determines
-layout_parameters ..> Event : fires
-layout_parameters -- layout_parameters_settings
+class LayoutSettingline{
+    {inherits from Qwidget}
+    -loadUI()
+    -setInteractivity()
 }
-note left of MyPlottingWidgets
-Les plots sont caractérisés par un type de plot et leurs paramètres.
-Leurs paramètres sont modifiables via un layout spécifique.
-Ces paramètres peuvent être enregistrés.
-Par défault il pourrait n'y avoir que quelques options.
-Créer une classe qui s'instancie avec en argument les fonctions de plot.
-Rq: cela pourrait être un plot comme n'importe quel autre widget
 
-end note
+class PlotGeneral{
+    {abstract}
+    -id 
+    -layout
+    -layout_graph
+    -parent
+
+    -draw()
+    -clear()
+
+}
+
+class PlotLine{
+
+    -l {Layout ui}
+    -function_name
+
+}
+
+class PlotFFT{
+
+    -l {Layout ui}
+    -function_name
+
+}
+
+OneGraph::ui_graph *-- PlotGeneral
+OneGraph::ui_parameters *-- Layout_Paramerters_Type
+
+
+pgMultiPlotWidget <|--PlotLine
+pgMultiPlotWidget <|--PlotFFT
+PlotGeneral <|--PlotFFT
+PlotGeneral <|--PlotLine
+
+PlotLine::l *-- LayoutSettingline
+PlotFFT::l *-- LayoutSettingfft
+
 
 @enduml
