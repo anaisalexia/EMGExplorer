@@ -4,6 +4,108 @@ from Explorer_package.loading_function import *
 from PyQt5.QtCore import Qt
 import os
 
+def deleteItemsOfLayout(layout):
+     if layout is not None:
+         while layout.count():
+             item = layout.takeAt(0)
+             widget = item.widget()
+             if widget is not None:
+                 widget.setParent(None)
+             else:
+                 deleteItemsOfLayout(item.layout())
+
+
+class Layout_Parameters_Type(QWidget):
+    def __init__(self):
+        super().__init__()
+        loadUi( 'hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\layout_parameters_type.ui',self)
+        self.layout_param =self.vlayout_parameters
+
+
+class OneGraph():
+    def __init__(self,frame_graph,layout_parameters,i,parent) -> None:
+        """Creates an object that will manage the event of a box
+
+        Args:
+            frame_graph (frame): frame of the main windows were the widget should be displayed
+            layout_parameters (layout): layout of the main windows were the parameters of the object should be displayed
+            i (int): id of the widget
+            parent (mainWindow): mainWindow
+        """
+
+        self.ui_graph = None
+        self.id = i
+        self.parent = parent
+        
+        # Init layout of the parameters box
+        self.ui_parameters = Layout_Parameters_Type()
+        for fc in PLOT.keys():
+            self.ui_parameters.comboBox_type.addItem(fc)
+        self.layout_parameters = layout_parameters
+
+
+        # Init layout of the graph box
+        self.layout_graph = QGridLayout()
+        self.b = QPushButton()
+        self.layout_graph.addWidget(self.b)
+        frame_graph.setLayout(self.layout_graph)
+
+
+        self.b.clicked.connect(self.oc_Buttonclick)
+        self.ui_parameters.comboBox_type.currentIndexChanged.connect(self.oc_comboBox_type_change)
+
+
+    def oc_Buttonclick(self):
+        """Opens the menu of the current box
+        """
+        self.add_ui_to_layout()
+
+    def oc_comboBox_type_change(self):
+        """Changes the graph of the current box
+        """
+        self.setPlot(PLOT[self.ui_parameters.comboBox_type.currentText()])
+        self.add_graph_to_layout()
+
+    def add_ui_to_layout(self):
+        """Changes the settings of the graph
+        """
+        deleteItemsOfLayout(self.layout_parameters)
+        self.layout_parameters.addWidget(self.ui_parameters)
+
+    def add_graph_to_layout(self):
+        """add a graph to the box
+        """
+        deleteItemsOfLayout(self.layout_graph)
+        self.layout_graph.addWidget(self.b)
+        if self.ui_graph:
+            self.layout_graph.addWidget(self.ui_graph)
+
+    def add_setting_to_param(self):
+        """Add settings to the parameters box
+        """
+        deleteItemsOfLayout(self.ui_parameters.layout_param)
+        self.ui_parameters.layout_param.addWidget(self.ui_graph.l)
+
+
+    def setPlot(self,plot):
+        """Set the plot of the current object
+
+        Args:
+            plot (_type_): _description_
+        """
+        self.ui_graph = plot(self.layout_parameters,
+                            self.layout_graph,
+                            self.id,
+                            self.parent)
+        self.add_setting_to_param()
+
+
+
+
+
+
+
+
 
 class Layout(QWidget):
     def __init__(self,nb,nb_v=1):
@@ -83,29 +185,12 @@ class EMGExplorer(QMainWindow):
         self.current_id = 0
 
         self.update_list_layout_graph()
-        self.initialize_layout_graph()
+        # self.initialize_layout_graph()
         
-        # self.p2.plot(np.random.normal(size=100), pen=(255,0,0), name="Red curve")
-        # self.p2.showGrid(x=True, y=True)
+   
         self.interactivity_fileSystem()
         print('iiiiiiniiit')
         self.show()
-
-   
-    # class MyMultiPlotWidget(pg.MultiPlotWidget):
-    #     def __init__(self,parent,i):
-    #         pg.MultiPlotWidget.__init__(self)
-    #         self.parent = parent
-    #         self.id = i
-
-    #         self.plot = self.addPlot(title=f'graph {self.id}')
-
-    
-    #     def mouseDoubleClickEvent(self, event):
-    #         print("clicked")
-    #         self.parent.label_5.setText(str(np.random.randn()))
-    #         # self.parent.update_parameters_win(self.id)
-    #         event.accept()
 
     
 
@@ -118,26 +203,11 @@ class EMGExplorer(QMainWindow):
         i = 0
         for frame in self.layout.findChildren(QFrame):
             if 'graph' in frame.objectName().split('_'):
-                self.dict_layout_graph[i] = QGridLayout(frame)
+            
+                self.dict_layout_graph[i] = OneGraph(frame,self.layout_param,i,self)
                 i += 1
 
-
-        
-    def initialize_layout_graph(self):
-        """Initialize/ create the graph and put them in the layouts of dict_layout_graph.
-        windows : pg plotwidget
-        plot : plot
-        param : {'type':
-                'processing':}
-        """
-        self.dict_displayed_graph = {}     
-        for graph_id,layout in self.dict_layout_graph.items():
-            # self.dict_displayed_graph[graph_id] = { 'window': self.MyMultiPlotWidget(self,graph_id)}
-            self.dict_displayed_graph[graph_id] =  PlotLine(self.layout_param,layout,graph_id,self)
-            self.dict_displayed_graph[graph_id].setBackground("w")
-            layout.addWidget(self.dict_displayed_graph[graph_id])
-            # self.dict_displayed_graph[graph_id]['plot'] = self.dict_displayed_graph[graph_id]['window'].addPlot(title=f'graph {graph_id}')
-            # self.dict_displayed_graph[graph_id]['param'] = {'type':'','processing':''}
+    
 
       
         
