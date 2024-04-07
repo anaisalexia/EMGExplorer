@@ -1,0 +1,154 @@
+@startuml
+!theme carbon-gray
+'class Parameters_win'
+
+/'
+Pour l'instant la fenêtre principale a une liste de graph 
+propre à chaque layout affiché
+sur lesquels les données sont affichées et changées en fonction du type
+En supposant donc que tout s'affiche sur un Multiplotwidget
+
+Changement de paradigme
+La fenetre principale a une liste des types d'affichages souhaitées
+chaques affichage à une fenêtre qui lui est propre
+
+avant 
+dict_display {id: graph } 
+MainWindow --> graph
+class graph{
+    multiplot
+    plot
+}
+
+desormais
+dict_display {id: <s> graph </s> type } 
+
+'/
+
+class MainWindow{
+    - dict_data : {'name file' : MyDataLoader}
+    - dict_layout {from Layout_Graph + dock}
+    - dict_display {id:MyPlot}
+    - load_multiple_file() {calls the correct dataloader for each type of file}
+}
+
+object dict_correspondance_format_dataloader
+
+class MyDataLoader{
+    - format : str
+    - data : DataFram, xarray, hdf5, c3d
+    - dict_ group : { 'group_path':{'var':[channel],'var2': [chanel]}}
+    - path : str
+    - open_file() {return data}
+    - load_attribut(group) {update metadata}
+    - get_group_var_channel() {return dict_group, update comboBox}
+    - get_data(group,var,channel) {only way to access the data,return np.array}
+    - save_data() {save processed signals}
+    - save_attr() {save metadata}
+}
+note right
+DataLoader are specific to the type of file
+MyDataLoadernc, MyDataLoadercsv, MyDataLoaderc3d...
+end note
+
+class Layout_Graph{
+    - list_layout() {return list of layout}
+    - load_ui()
+}
+note left
+Le Layout peut être personnalisé
+et renvoie juste les emplacements 
+où les graphes peuvent être affichés.
+
+Cela permet aussi de rendre plus flexible 
+les moyens de retourner les frames.
+end note
+
+
+
+
+class MyPlot{
+    {ex: scatter, lineplot, boxplot ...}
+}
+
+' class MyMultiPlotWidget{
+'     - id 
+'     - parent {MainWindow}
+'     - plot
+'     - parameters
+' }
+
+MainWindow::dict_layout --> Layout_Graph
+MainWindow::dict_display  --->"*" MyPlottingWidgets
+MainWindow::data  -> dict_correspondance_format_dataloader
+dict_correspondance_format_dataloader --> MyDataLoader
+
+
+' type_of_plot --> MyMultiPlotWidget : if timeseries
+' type_of_plot --> MyCanvasMatPlt : if statistic
+
+' MyCanvasMatPlt --|> Matplotlib_Canvas : inheritance
+' MyMultiPlotWidget --|> pg_MultiPlotWidget : inheritance
+
+
+
+package MyPlottingWidgets <<Rectangle>> {
+
+class MyPlot(layout(s)){
+    {eg: lineplot, heatmap,...}
+    - main_function
+    - widget_canvas
+    - layout_parameters {.ui }
+    - setting {saves the setting chosen with layout parameters}
+    - init_interactivity() {according to canvas type and layout_parameters}
+}
+'Il pourrait y avoir une classe type pour ploter les timeseries par exemple
+'classe de laquelle pourraient dériver, des plots comme, lineplot,psd
+
+
+object dict_typeOfPlot_MyPlot
+
+class PlotWidget{
+    - windows/plt/canvas {eg: Canvas matplolib or pg.plotwidget}
+    - update_data(new_data)
+    - clear_figure()
+}
+
+class layout_parameters{
+    - load_ui()
+}
+note right
+Comment lier l'affichage des parametres au type de graph ?
+Comment sauvegarder les settings et y avoir accès
+Comment implémenter les actions des settings
+end note
+
+object layout_parameters_settings
+class Event{
+    {take all function that interacts simultaneously with the layout 
+    and the figure}
+}
+note right of Event
+there are events specific to Canvas
+and events specific to pg
+
+Comment choisir les bons events ?
+end note
+
+type_of_plot ..> PlotWidget : determines
+type_of_plot ..> layout_parameters : determines
+PlotWidget ..> Event : determines
+layout_parameters ..> Event : fires
+layout_parameters -- layout_parameters_settings
+}
+note left of MyPlottingWidgets
+Les plots sont caractérisés par un type de plot et leurs paramètres.
+Leurs paramètres sont modifiables via un layout spécifique.
+Ces paramètres peuvent être enregistrés.
+Par défault il pourrait n'y avoir que quelques options.
+Créer une classe qui s'instancie avec en argument les fonctions de plot.
+Rq: cela pourrait être un plot comme n'importe quel autre widget
+
+end note
+
+@enduml
