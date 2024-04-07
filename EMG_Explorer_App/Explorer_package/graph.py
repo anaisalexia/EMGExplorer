@@ -29,9 +29,8 @@ class LayoutParameters2(QWidget):
 class PlotGeneral(ABC):
      
     def __init__(self,layout,layout_graph,i,parent):
-        
+        # super().__init__()
         self.id = i
-
         self.layout = layout
         self.layout_graph = layout_graph
         self.parent = parent
@@ -47,15 +46,16 @@ class PlotGeneral(ABC):
       
   
 
-class PlotLine(PlotGeneral,pg.MultiPlotWidget):
+class PlotLine(pg.MultiPlotWidget):
+    __metaclass__ = PlotGeneral
 
     def __init__(self, layout, layout_graph, i, parent):
         PlotGeneral.__init__(self,layout, layout_graph, i, parent)
         pg.MultiPlotWidget.__init__(self)
-
+        
+        self.plot = self.addPlot(title=f'graph {self.id}')
         self.l = LayoutParameters()
         self.function = 'lineplot'
-        super().__init__(layout, layout_graph, i, parent)
 
 
 
@@ -69,11 +69,14 @@ class PlotLine(PlotGeneral,pg.MultiPlotWidget):
 
 
 
-class FFT(PlotGeneral,pg.MultiPlotWidget):
+class FFT(pg.MultiPlotWidget):
+    __metaclass__ = PlotGeneral
+
      
     def __init__(self, layout, layout_graph, i, parent):
         PlotGeneral.__init__(self,layout, layout_graph, i, parent)
         pg.MultiPlotWidget.__init__(self)
+        self.plot = self.addPlot(title=f'graph {self.id}')
     
         self.l = LayoutParameters2()
         self.function = 'fft'

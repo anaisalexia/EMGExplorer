@@ -158,7 +158,7 @@ class EMGExplorer(QMainWindow):
         #
         self.data = {}
         # self.layout_param = self.frame_parameters
-        self.layout_param = self.verticalLayout
+        self.layout_param = self.layout_parameters
 
 
         ## MENU
