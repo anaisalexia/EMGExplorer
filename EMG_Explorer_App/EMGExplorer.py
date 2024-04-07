@@ -55,6 +55,8 @@ class EMGExplorer(QMainWindow):
 
         #
         self.data = {}
+        # self.layout_param = self.frame_parameters
+        self.layout_param = self.verticalLayout
 
 
         ## MENU
@@ -70,17 +72,7 @@ class EMGExplorer(QMainWindow):
         # Information window
         self.treeWidget.itemDoubleClicked.connect(self.oc_itemPressed)
         
-        ## Windows Parameters
-        # Definition of the button Parameters ...
-        self.menu = QMenu()
-        self.menu.addAction("Delete",self.oc_action1)
-        self.menu.addAction("Split",self.oc_action1)
-        self.menu_type = QMenu('Change type')
-        self.menu_type.addAction("type1",self.oc_action1)
-        self.menu_type.addAction("type2",self.oc_action1)
-        self.menu.addMenu(self.menu_type)
-
-        self.toolButton.setMenu(self.menu)
+       
         self.nb_layout = 3
         self.nb_version = 1
 
@@ -88,11 +80,11 @@ class EMGExplorer(QMainWindow):
 
         self.time = np.arange(100)
         self.signal = np.random.random(100)
+        self.current_id = 0
 
         self.update_list_layout_graph()
         self.initialize_layout_graph()
-
-       
+        
         # self.p2.plot(np.random.normal(size=100), pen=(255,0,0), name="Red curve")
         # self.p2.showGrid(x=True, y=True)
         self.interactivity_fileSystem()
@@ -100,20 +92,22 @@ class EMGExplorer(QMainWindow):
         self.show()
 
    
-    class MyMultiPlotWidget(pg.MultiPlotWidget):
-        def __init__(self,parent,i):
-            pg.MultiPlotWidget.__init__(self)
-            self.parent = parent
-            self.id = i
+    # class MyMultiPlotWidget(pg.MultiPlotWidget):
+    #     def __init__(self,parent,i):
+    #         pg.MultiPlotWidget.__init__(self)
+    #         self.parent = parent
+    #         self.id = i
 
-            self.plot = self.addPlot(title=f'graph {self.id}')
+    #         self.plot = self.addPlot(title=f'graph {self.id}')
 
     
-        def mouseDoubleClickEvent(self, event):
-            print("clicked")
-            self.parent.label_5.setText(str(np.random.randn()))
-            # self.parent.update_parameters_win(self.id)
-            event.accept()
+    #     def mouseDoubleClickEvent(self, event):
+    #         print("clicked")
+    #         self.parent.label_5.setText(str(np.random.randn()))
+    #         # self.parent.update_parameters_win(self.id)
+    #         event.accept()
+
+    
 
     def update_list_layout_graph(self):
         """Updates the variable dict_layout_graph
@@ -138,9 +132,10 @@ class EMGExplorer(QMainWindow):
         """
         self.dict_displayed_graph = {}     
         for graph_id,layout in self.dict_layout_graph.items():
-            self.dict_displayed_graph[graph_id] = { 'window': self.MyMultiPlotWidget(self,graph_id)}
-            self.dict_displayed_graph[graph_id]['window'].setBackground("w")
-            layout.addWidget(self.dict_displayed_graph[graph_id]['window'])
+            # self.dict_displayed_graph[graph_id] = { 'window': self.MyMultiPlotWidget(self,graph_id)}
+            self.dict_displayed_graph[graph_id] =  PlotLine(self.layout_param,layout,graph_id,self)
+            self.dict_displayed_graph[graph_id].setBackground("w")
+            layout.addWidget(self.dict_displayed_graph[graph_id])
             # self.dict_displayed_graph[graph_id]['plot'] = self.dict_displayed_graph[graph_id]['window'].addPlot(title=f'graph {graph_id}')
             # self.dict_displayed_graph[graph_id]['param'] = {'type':'','processing':''}
 
@@ -320,10 +315,7 @@ class EMGExplorer(QMainWindow):
         for loader in self.data.keys():
             self.listWidget_file.addItem(loader)
 
-        # update the comboBox
-        # self.update_fileSystem_comboBox_Group()
-        # self.update_fileSystem_comboBox_Variable()
-        # self.update_fileSystem_comboBox_Channel()
+
 
 
     # COMBOBOX FILE SYSTEM   
@@ -371,14 +363,8 @@ class EMGExplorer(QMainWindow):
         group = self.comboBox_group.currentText()
         var = self.comboBox_variable.currentText()
 
-        # self.data_array = self.data[self.listWidget_file.currentItem().text()]['data'][self.comboBox_group.currentText()][self.comboBox_variable.currentText()]
 
         dims = dict_group[group][var]
-        # for t in ['Time','time']:
-        #     try:
-        #         dims.remove(t)
-        #     except:
-        #         pass
 
         if len(dims) != 0:
             self.label_timeline_dim.setText(str(var))
