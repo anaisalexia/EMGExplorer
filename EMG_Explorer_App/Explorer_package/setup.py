@@ -11,6 +11,9 @@ import numpy as np
 import pandas as pd
 
 import pyqtgraph as pg
+import pyqtgraph.parametertree.parameterTypes as pTypes
+from pyqtgraph.parametertree import Parameter, ParameterTree
+
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *

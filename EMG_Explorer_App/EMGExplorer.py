@@ -4,6 +4,71 @@ from Explorer_package.loading_function import *
 from PyQt5.QtCore import Qt
 import os
 
+class OneSetting(pTypes.GroupParameter):
+    def __init__(self, name):
+        opts = {'name':name}
+        opts['type'] = 'bool'
+        opts['value'] = True
+        pTypes.GroupParameter.__init__(self, **opts)
+        self.addChild({'name': 'Delete', 'type': 'action'},)
+        self.addChild({'name': 'pos = x', 'type': 'float', 'value': 0, 'siPrefix': True})
+        self.addChild({'name': 'A = ...', 'type': 'float', 'value': 7, 'suffix': 'Hz', 'siPrefix': True})
+        self.addChild({'name': 'B = ...', 'type': 'float', 'value': 1/7., 'suffix': 'Hz', 'siPrefix': True})
+        self.a = self.param('A = ...')
+        self.b = self.param('B = ...')
+        self.a.sigValueChanged.connect(self.aChanged)
+        self.b.sigValueChanged.connect(self.bChanged)
+
+    def aChanged(self):
+        self.b.setValue(1.0 / self.a.value(), blockSignal=self.bChanged)
+
+    def bChanged(self):
+        self.a.setValue(1.0 / self.b.value(), blockSignal=self.aChanged)
+
+class addOneSetting(pTypes.GroupParameter):
+    def __init__(self, parent_ ):
+        opts = {'name':'add'}
+        opts['type'] = 'group'
+        opts['addText'] = "Add"
+        self.dict_filter = {'filter1':'name1'}
+        opts['addList'] = list(self.dict_filter.keys())
+        self.parent_ = parent_ 
+        pTypes.GroupParameter.__init__(self, **opts)
+    
+    def addNew(self, typ):
+        val = self.dict_filter[typ]
+        self.parent_.addNew(val)
+        
+
+
+class Filters():
+    def __init__(self,list_f=None) -> None:
+        self.listFilters = {} if not list_f else list_f
+        self.nb = len(self.listFilters.keys())
+        self.tree = ParameterTree()
+        self.add = addOneSetting(self)
+        self.listFilters[self.nb] =self.add
+        self.nb += 1
+        self.CreateTree()
+
+    def addNew(self,val):
+        self.p.insertChild(self.add, OneSetting(val))
+        # self.p.removeChild(self.p.children()[1])
+        # self.p.addChild(OneSetting(val))
+        # self.p
+
+
+    def addFilter(self,filter):
+        self.listFilters[self.nb] = filter
+        # self.listFilters[self.nb].param('delete', 'delete').sigActivated.connect(delete)
+
+        self.nb += 1
+
+    def CreateTree(self):
+        print(self.listFilters)
+        self.p = Parameter.create(name='params', type='group', children=list(self.listFilters.values()))
+        self.tree.addParameters(self.p)
+
 def deleteItemsOfLayout(layout):
      if layout is not None:
          while layout.count():
@@ -39,7 +104,7 @@ class OneGraph():
         
         # Init layout of the parameters box
         self.ui_parameters = Layout_Parameters_Type()
-        for fc in PLOT.keys():
+        for fc in [None] + list(PLOT.keys()):
             self.ui_parameters.comboBox_type.addItem(fc)
         self.layout_parameters = layout_parameters
 
@@ -59,12 +124,25 @@ class OneGraph():
         """Opens the menu of the current box
         """
         self.add_paramUi_to_layout()
+        self.parent.current_id = self.id
+
 
     def oc_comboBox_type_change(self):
         """Changes the graph of the current box
         """
-        self.setPlot(PLOT[self.ui_parameters.comboBox_type.currentText()])
-        self.add_graphUi_to_layout()
+        type_ = self.ui_parameters.comboBox_type.currentText()
+        if type_:
+            self.setPlot(PLOT[type_])
+            self.add_graphUi_to_layout()
+            data = self.parent.get_dataChannel()
+            self.ui_graph.draw(data)
+        else:
+            self.ui_graph.clearGraph()
+
+    def update_drawing(self):
+        self.ui_graph.clearGraph()
+        data = self.parent.get_dataChannel()
+        self.ui_graph.draw(data)
 
     def add_paramUi_to_layout(self):
         """Changes the settings of the graph
@@ -102,7 +180,23 @@ class OneGraph():
 
 
 
+def walkDatatree_setAttrDataset(info,node):
 
+    if type(list(info.values())[0]) == dict:
+        for name,child_dict in info.items():
+            child_node = QTreeWidgetItem(node)
+            child_node.setText(0, str(name))
+            walkDatatree_setAttrDataset(child_dict,child_node)
+                
+    else: 
+        for k,v in info.items():
+            child_node = QTreeWidgetItem(node)            
+            child_node.setText(0,str(k))
+            child_node.setText(1,str(v))
+        return info
+        
+    
+    return info
 
 
 
@@ -157,7 +251,6 @@ class EMGExplorer(QMainWindow):
 
         #
         self.data = {}
-        # self.layout_param = self.frame_parameters
         self.layout_param = self.layout_parameters
 
 
@@ -190,10 +283,37 @@ class EMGExplorer(QMainWindow):
    
         self.interactivity_fileSystem()
         print('iiiiiiniiit')
+      
+        self.setting = {0:OneSetting('Custom parameter')}
+        self.paramtre = Filters(self.setting)
+        self.layout_setting.addWidget(self.paramtre.tree)
+
         self.show()
 
     
+    def get_dataChannel(self):
+        file_name = self.listWidget_file.currentItem().text()
+        loader = self.data[file_name]
+        group = self.comboBox_group.currentText()
+        var = self.comboBox_variable.currentText()
+        ch = self.comboBox_dim.currentText()
+        dim = self.label_timeline_dim.text()
+        
+        return loader.getData(group,var,dim,ch)
+    
+    def get_dataVariable(self):
+        file_name = self.listWidget_file.currentItem().text()
+        loader = self.data[file_name]
+        group = self.comboBox_group.currentText()
+        var = self.comboBox_variable.currentText()
+        dim = self.label_timeline_dim.text()
+        
+        return loader.getDataVariable(group,var,dim)
+    
+    def get_currentPlot(self):
+        return self.dict_layout_graph[self.current_id]
 
+    
     def update_list_layout_graph(self):
         """Updates the variable dict_layout_graph
         Create a dictionnary with the layout that can be used to display graphs 
@@ -385,6 +505,9 @@ class EMGExplorer(QMainWindow):
         for loader in self.data.keys():
             self.listWidget_file.addItem(loader)
 
+    def get_currentLoader(self):
+        file_name = self.listWidget_file.currentItem().text()
+        return self.data[file_name]
 
 
 
@@ -434,11 +557,11 @@ class EMGExplorer(QMainWindow):
         var = self.comboBox_variable.currentText()
 
 
-        dims = dict_group[group][var]
+        dims = list(dict_group[group][var].keys())
 
         if len(dims) != 0:
-            self.label_timeline_dim.setText(str(var))
-            for item in dict_group[group][var]:
+            self.label_timeline_dim.setText(str(dims[0]))
+            for item in dict_group[group][var][dims[0]]:
                 self.comboBox_dim.addItem(str(item))
         else:
             self.label_timeline_dim.setText('no dim')
@@ -456,6 +579,14 @@ class EMGExplorer(QMainWindow):
         # update comboBox variable
         self.oc_comboBox_group_change()
         self.oc_comboBox_variable_change()
+
+        # load attrs
+        loader = self.get_currentLoader()
+        loader.loadAttributs()
+
+        if loader.attrs:
+            walkDatatree_setAttrDataset(loader.attrs,self.treeWidget)
+        
        
 
     def oc_comboBox_group_change(self,):
@@ -468,11 +599,19 @@ class EMGExplorer(QMainWindow):
         print('oc var')
         self.update_fileSystem_comboBox_Channel()
 
+    def oc_comboBox_dim_change(self,):
+        for plot in self.dict_layout_graph.values():
+            try:
+                plot.update_drawing()
+            except:
+                pass
+
 
     def interactivity_fileSystem(self):
         self.listWidget_file.currentItemChanged.connect(self.oc_ListWidget_change)
         self.comboBox_group.textActivated.connect(self.oc_comboBox_group_change)
         self.comboBox_variable.textActivated.connect(self.oc_comboBox_variable_change)
+        self.comboBox_dim.textActivated.connect(self.oc_comboBox_dim_change)
 
 
         

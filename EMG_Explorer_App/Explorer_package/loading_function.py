@@ -98,10 +98,10 @@ def walkDatatree_getPathDataset(node,path):
 
                 if len(dims) != 0:
                     dim_name = dims[0] # could be replace by a list of the dims if more than 2        
-                    dict_node[var] = list(node[var][dim_name].values)
+                    dict_node[var] = {str(dim_name): list(node[var][dim_name].values)}
                 
                 else:
-                    dict_node[var] = []
+                    dict_node[var] = {}
 
             path[node.path] = dict_node
             return path
@@ -113,23 +113,31 @@ def walkDatatree_getPathDataset(node,path):
     
     return path
 
+
+def walkDatatree_getAttrDataset(node):
+    info = {}
+    if node.is_leaf:
+        if node.has_attrs:
+            dict_node = node.attrs
             
-# def load_nc_file(path): # to be stored in a dict
-#     """Load .nc file and extract the path of the groups that have data variables
+            info[node.name] = dict_node
+            return info
+        return info
+                
+    else: 
+        for child in node.children:
+            folder = node.name
+            info[ folder if folder != None else 'Root'] = walkDatatree_getAttrDataset(node[child])
+    
+    return info
 
-#     Args:
-#         path (str): path
 
-#     Returns:
-#         dict: {'data':data, 'path':path}
-#     """
-#     data =  datatree.open_datatree(path)
 
-#     # Extract the variables
-#     path = walkDatatree_getPathDataset(data,{})
-
-#     return data, path
-
+# cities =  QTreeWidgetItem(treeWidget)
+# cities.setText(0, tr("Cities"))
+# osloItem =  QTreeWidgetItem(cities)
+# osloItem.setText(0, tr("Oslo"))
+# osloItem.setText(1, tr("Yes"))
 
 
 class MyDataLoaderNC(MyDataLoader):
@@ -139,6 +147,7 @@ class MyDataLoaderNC(MyDataLoader):
         self.dict_group = {}
         self.path = path
         self.name = name
+        self.attrs = {}
         self.openFile()
 
 
@@ -168,7 +177,7 @@ class MyDataLoaderNC(MyDataLoader):
         self.dict_group = walkDatatree_getPathDataset(self.data,{})
         print(self.dict_group)
 
-    def getData(self,group,var,channel):
+    def getData(self,group,var,dim,channel):
         """Returns the selected data
 
         Args:
@@ -179,7 +188,25 @@ class MyDataLoaderNC(MyDataLoader):
         Returns:
             np.array: 
         """
-        return np.array([])
+       
+        try : channel = int(channel) #could be fix with item instead of text ?
+        except: pass
+        return self.data[group][var].loc[{dim:channel}] 
+    
+    def getDataVariable(self,group,var,dim):
+        """Returns the selected data
+
+        Args:
+            group (str): _description_
+            var (str): _description_
+            channel (str): _description_
+
+        Returns:
+            np.array: 
+        """
+       
+
+        return self.data[group][var] 
     
     def setData(self,group,var,channel,data):
         pass
@@ -190,7 +217,8 @@ class MyDataLoaderNC(MyDataLoader):
 
     # ATTRIBUTS
     def loadAttributs(self):
-        return {}
+        self.attrs = walkDatatree_getAttrDataset(self.data)
+        print('atrs load',self.attrs)
     
     def saveAttributs(self):
         pass

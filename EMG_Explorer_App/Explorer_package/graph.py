@@ -40,7 +40,7 @@ class PlotGeneral(ABC):
         pass
 
     @abstractmethod
-    def clear(self):
+    def clearGraph(self):
         pass
 
       
@@ -59,13 +59,22 @@ class PlotLine(pg.MultiPlotWidget):
 
 
 
-    def draw(self,y,x=None):
-        if not x:
-            x = np.arange(len(y))
-        self.fig.plot.plot(x=x,y=y)
+    def draw(self,data):
 
-    def clear(self):
-        self.fig.clear()
+        y = data.values
+
+        for t in ['Time','time']:
+            if t in data.dims:
+                x = np.array(data[t])
+
+        self.plot.plot(x=x,y=y)
+        # self.plot.setXRange(min(x), max(x), padding=0)
+
+        self.plot.enableAutoRange(True)
+
+
+    def clearGraph(self):
+        self.plot.clear()
 
 
 
@@ -85,23 +94,28 @@ class FFT(pg.MultiPlotWidget):
 
 
 
-    def draw(self,y,x=None):
-        if not x:
-            x = np.arange(len(y))
-        self.fig.plot.plot(x=x,y=y)
+    def draw(self,data):
+        y = data.values
 
-        self.fftplot.plot(self.time, self.signal)
+        for t in ['Time','time']:
+            if t in data.dims:
+                x = np.array(data[t])
+
+        self.plot.plot(x=x,y=y)
+
         # self.fftplot.setMouseEnabled(x=True, y=False)
-        self.fig.plot.showGrid(x=True)
+        self.plot.showGrid(x=True)
         # self.fftplot.setMenuEnabled(False)
         # self.fftplot.setLabel('left', "Channel {} - Power".format(elec_id), "")
-        self.fig.plot.setLabel('bottom', "frequency", "Hz")
-        self.fig.plot.curves[0].setFftMode(True)
+        self.plot.setLabel('bottom', "frequency", "Hz")
+        self.plot.curves[0].setFftMode(True)
+        self.plot.enableAutoRange(True)
+
         # self.fftplot.enableAutoRange(True)
         
 
-    def clear(self):
-        self.fig.clear()
+    def clearGraph(self):
+        self.plot.clear()
 
 
 
