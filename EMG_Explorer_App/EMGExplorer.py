@@ -134,14 +134,14 @@ class OneGraph():
         if type_:
             self.setPlot(PLOT[type_])
             self.add_graphUi_to_layout()
-            data = self.parent.get_dataChannel()
+            data = self.ui_graph.get_data()
             self.ui_graph.draw(data)
         else:
             self.ui_graph.clearGraph()
 
     def update_drawing(self):
         self.ui_graph.clearGraph()
-        data = self.parent.get_dataChannel()
+        data = self.ui_graph.get_data()
         self.ui_graph.draw(data)
 
     def add_paramUi_to_layout(self):
@@ -250,7 +250,7 @@ class EMGExplorer(QMainWindow):
         self.restoreSettings()
 
         #
-        self.data = {}
+        self.dataLoader = {}
         self.layout_param = self.layout_parameters
 
 
@@ -293,7 +293,7 @@ class EMGExplorer(QMainWindow):
     
     def get_dataChannel(self):
         file_name = self.listWidget_file.currentItem().text()
-        loader = self.data[file_name]
+        loader = self.dataLoader[file_name]
         group = self.comboBox_group.currentText()
         var = self.comboBox_variable.currentText()
         ch = self.comboBox_dim.currentText()
@@ -303,7 +303,7 @@ class EMGExplorer(QMainWindow):
     
     def get_dataVariable(self):
         file_name = self.listWidget_file.currentItem().text()
-        loader = self.data[file_name]
+        loader = self.dataLoader[file_name]
         group = self.comboBox_group.currentText()
         var = self.comboBox_variable.currentText()
         dim = self.label_timeline_dim.text()
@@ -499,15 +499,15 @@ class EMGExplorer(QMainWindow):
         # load the paths
         files,extension = QFileDialog.getOpenFileNames(self, 'Open file',  'C:\\Users\\mtlsa\\Documents\\UTC\\GB05\\TX\\Python_EMGExplorer\\data',"files (*.*)")
         
-        self.data = load_multiple_files(files)
+        self.dataLoader = load_multiple_files(files)
 
         # update the list
-        for loader in self.data.keys():
+        for loader in self.dataLoader.keys():
             self.listWidget_file.addItem(loader)
 
     def get_currentLoader(self):
         file_name = self.listWidget_file.currentItem().text()
-        return self.data[file_name]
+        return self.dataLoader[file_name]
 
 
 
@@ -526,7 +526,7 @@ class EMGExplorer(QMainWindow):
         
         file_name = self.listWidget_file.currentItem().text()
 
-        for group in self.data[file_name].dict_group.keys():
+        for group in self.dataLoader[file_name].dict_group.keys():
             self.comboBox_group.addItem(group)
 
 
@@ -538,7 +538,7 @@ class EMGExplorer(QMainWindow):
         self.comboBox_variable.clear()
 
         file_name = self.listWidget_file.currentItem().text()
-        dict_group = self.data[file_name].dict_group
+        dict_group = self.dataLoader[file_name].dict_group
         group = self.comboBox_group.currentText()
 
         for var in list(dict_group[group].keys()):
@@ -552,7 +552,7 @@ class EMGExplorer(QMainWindow):
         self.comboBox_dim.clear()
 
         file_name = self.listWidget_file.currentItem().text()
-        dict_group = self.data[file_name].dict_group
+        dict_group = self.dataLoader[file_name].dict_group
         group = self.comboBox_group.currentText()
         var = self.comboBox_variable.currentText()
 

@@ -23,7 +23,41 @@ class LayoutParameters2(QWidget):
 
 
     
+class LayoutParameters_MultiplePlot(QWidget):
 
+    def __init__(self,):
+        super().__init__()
+        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\parameters_multipleplot.ui', self)
+
+    # def update_limit(self):
+    #     self.spinBox_limit.setValue(self.spinBox_nbChannel.value() * self.spinBox_nbRow.value() * self.spinBox_nbColumn.value())
+        
+    def update_nbChannel(self):
+        self.spinBox_nbChannel.setValue(np.ceil(self.spinBox_limit.value() / (self.spinBox_nbRow.value() * self.spinBox_nbColumn.value())))
+
+    def interactivity(self):
+        self.spinBox_nbRow.textChanged.connect(self.update_nbChannel)
+        self.spinBox_nbCol.textChanged.connect(self.update_nbChannel)
+        self.spinBox_limit.textChanged.connect(self.update_nbChannel)
+
+
+    
+class LayoutParameters_MultiplePlot2(QWidget):
+
+    def __init__(self,):
+        super().__init__()
+        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\parameters_multiplot2.ui', self)
+
+    # def update_limit(self):
+    #     self.spinBox_limit.setValue(self.spinBox_nbChannel.value() * self.spinBox_nbRow.value() * self.spinBox_nbColumn.value())
+        
+    # def update_nbChannel(self):
+    #     self.spinBox_nbChannel.setValue(np.ceil(self.spinBox_limit.value() / (self.spinBox_nbRow.value() * self.spinBox_nbColumn.value())))
+
+    # def interactivity(self):
+    #     self.spinBox_nbRow.textChanged.connect(self.update_nbChannel)
+    #     self.spinBox_nbCol.textChanged.connect(self.update_nbChannel)
+    #     self.spinBox_limit.textChanged.connect(self.update_nbChannel)
 
 
 class PlotGeneral(ABC):
@@ -58,6 +92,8 @@ class PlotLine(pg.MultiPlotWidget):
         self.function = 'lineplot'
 
 
+    def get_data(self):
+        return self.parent.get_dataChannel()
 
     def draw(self,data):
 
@@ -92,7 +128,8 @@ class FFT(pg.MultiPlotWidget):
 
 
 
-
+    def get_data(self):
+        return self.parent.get_dataChannel()
 
     def draw(self,data):
         y = data.values
@@ -118,12 +155,217 @@ class FFT(pg.MultiPlotWidget):
         self.plot.clear()
 
 
+class MultiplePlot(pg.MultiPlotWidget):
+    __metaclass__ = PlotGeneral
+
+    def __init__(self, layout, layout_graph, i, parent):
+        self.row = 4
+        self.column = 2
+        self.limit_max = 128
+        self.limit_min = 0
+        self.nb_channel = self.limit_max - self.limit_min
+        self.nb_plot = self.row * self.column
+        self.nb_line =  np.ceil(self.nb_channel / self.nb_plot)
+
+
+
+#       p3 = win.addPlot(title="Drawing with points")
+# p3.plot(np.random.normal(size=100), pen=(200,200,200), symbolBrush=(255,0,0), symbolPen='w')
+
+
+# win.nextRow()
+
+        PlotGeneral.__init__(self,layout, layout_graph, i, parent)
+        pg.MultiPlotWidget.__init__(self)
+        
+        self.plot = {}
+        self.init_plot()
+        
+        self.l = LayoutParameters()
+        self.function = 'multiple_plot'
+
+
+    def init_plot(self):
+        for i in range(self.nb_plot):
+            if (i%self.column==0) and (i!=0):
+                self.nextRow()
+            self.plot[i] = self.addPlot(title=f'graph {self.id}')
+
+    def get_data(self):
+        return self.parent.get_dataVariable()
+
+    def draw(self,data):
+        print('draw')
+
+        limit = np.min([self.limit_max,len(data)])
+        print('draw',limit)
+
+        i_plot = 0
+        self.nb_line = np.ceil(limit-self.limit_min / self.nb_plot)
+
+        for i_ch in range(self.limit_min,limit+1):
+            y = data[i_ch].values
+
+            for t in ['Time','time']:
+                if t in data.dims:
+                    x = np.array(data[t])
+            print(y)
+            self.plot[i_plot%self.nb_line].plot(x=x,y=y)
+            self.plot[i_plot%self.nb_line].enableAutoRange(True)
+            i_plot +=1
+        # self.plot.setXRange(min(x), max(x), padding=0)
+
+        # self.plot.enableAutoRange(True)
+
+
+    def clearGraph(self):
+        for i in range(self.nb_plot):
+            self.plot[i].clear()
+
+def Try_decorator(function):
+    print('in deco')
+    def wrapper(*arg):
+        try:
+            function(*arg)
+        except Exception as e:
+            print(function.__name__)
+            print(e)
+
+    return wrapper
+
+class CustomPlot(pg.PlotDataItem):
+    def __init__(self, *args, **kargs):
+        super().__init__(*args, **kargs)
+
+
+class MultiplePlot2(pg.MultiPlotWidget):
+    __metaclass__ = PlotGeneral
+
+    def __init__(self, layout, layout_graph, i, parent):
+        self.column = 2
+        self.limit_max = 128
+        self.limit_min = 0
+        self.distance = 2
+
+        self.nb_channel = self.limit_max - self.limit_min
+        self.nb_line = lambda x : np.ceil(x / self.column)
+
+
+        PlotGeneral.__init__(self,layout, layout_graph, i, parent)
+        pg.MultiPlotWidget.__init__(self)
+        
+        self.plot = {}
+        self.line = {}
+        self.init_plot()
+
+
+        self.l = LayoutParameters_MultiplePlot2()
+        self.function = 'multiple_plot2'
+        self.data_plot = None
+        self.init_interactivity()
+
+        self.scene().sigMouseClicked.connect(self.mouse_clicked)    
+
+
+    def mouse_clicked(self, mouseClickEvent):
+        # mouseClickEvent is a pyqtgraph.GraphicsScene.mouseEvents.MouseClickEvent
+        # print('clicked plot 0x{:x}, event: {}'.format(id(self), mouseClickEvent))
+        try:
+            plot = self.scene().itemsNearEvent(mouseClickEvent)[1]
+
+            print(self.scene().itemsNearEvent(mouseClickEvent)[3].getData())
+        except:
+            print('no line')
+            pass
+
+
+    @Try_decorator
+    def init_interactivity(self):
+        self.l.spinBox_distance.valueChanged.connect(self.update_distance)
+
+    @Try_decorator
+    def update_distance(self,arg):
+        self.draw(self.data_plot,arg)
+
+    def init_plot(self):
+        for i in range(self.column):
+            self.plot[i] = self.addPlot(title=f'graph {self.id}')
+
+    def get_data(self):
+        return self.parent.get_dataVariable()
+
+    @Try_decorator
+    def draw(self,data,distance=None,timestamp=False):
+        self.clearGraph()
+        print('draw')
+        self.data_plot = data
+
+        limit = np.min([self.limit_max,len(data)])
+
+        nb_line = self.nb_line(limit)
+        if not distance:
+            self.distance = np.nanmean(np.nanmax(data,axis=1)-np.nanmean(data,axis=1))
+            self.l.spinBox_distance.blockSignals(True)
+            self.l.spinBox_distance.setValue(self.distance)
+            self.l.spinBox_distance.blockSignals(False)
+
+        else:
+            self.distance = distance
+
+
+        tick_distance = np.arange(0,self.distance*nb_line,self.distance)
+        tick = []
+        for i,i_ch in enumerate(range(self.limit_min,limit+1)):
+            y = data[i_ch].values
+            y = y - np.mean(y) + self.distance * (i%nb_line)            
+
+            if timestamp:
+                for t in ['Time','time']:
+                    if t in data.dims:
+                        x = np.array(data[t])
+                        try:
+                            tick = t.values()
+                        except : pass
+            else:
+                x= np.arange(0,len(y))
+
+            # self.line[i] = self.plot[i//nb_line].plot(x=x,y=y)
+            self.line[i] = pg.PlotDataItem(x,y)
+            self.plot[i//nb_line].addItem(self.line[i])
+            self.plot[i//nb_line].enableAutoRange(True)
+            self.plot[i//nb_line].enableAutoRange(True)
+            # self.line[i].sigClicked.connect(lambda x: print('connect'))
+
+        print('draw done')
+            
+    @Try_decorator
+    def update_othergraph(self,event):
+        print('plo','plot')
+        event.accept()
+
+        # if self.related_graph:
+        #     d
+        #     self.related_graph.draw(data)
+
+
+        # for p in range(self.column):
+        #     ay = self.plot[p].getAxis('left')
+        #     ay.setTicks([[(v, str(tick[p*nb_line,(p+1)*nb_line])) for v in tick_distance ]])        # self.plot.setXRange(min(x), max(x), padding=0)
+
+        # self.plot.enableAutoRange(True)
+
+
+    def clearGraph(self):
+        for i in range(self.column):
+            self.plot[i].clear()
 
 
 
 PLOT = {
     'fft':FFT,
-    'plotline':PlotLine
+    'plotline':PlotLine,
+    'multiple_plot':MultiplePlot,
+    'multiple_plot2':MultiplePlot2
 }
 
 # Emplacement -> type de widget

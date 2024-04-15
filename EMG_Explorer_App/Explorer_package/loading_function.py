@@ -133,11 +133,7 @@ def walkDatatree_getAttrDataset(node):
 
 
 
-# cities =  QTreeWidgetItem(treeWidget)
-# cities.setText(0, tr("Cities"))
-# osloItem =  QTreeWidgetItem(cities)
-# osloItem.setText(0, tr("Oslo"))
-# osloItem.setText(1, tr("Yes"))
+
 
 
 class MyDataLoaderNC(MyDataLoader):
