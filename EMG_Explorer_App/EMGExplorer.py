@@ -4,7 +4,21 @@ from Explorer_package.loading_function import *
 from PyQt5.QtCore import Qt
 import os
 
+
+def Try_decorator(function):
+    print('in deco')
+    def wrapper(*arg):
+        try:
+            function(*arg)
+        except Exception as e:
+            print(function.__name__)
+            print(e)
+
+    return wrapper
+
 class OneSetting(pTypes.GroupParameter):
+
+    @Try_decorator
     def __init__(self, name):
         opts = {'name':name}
         opts['type'] = 'bool'
@@ -18,6 +32,7 @@ class OneSetting(pTypes.GroupParameter):
         self.b = self.param('B = ...')
         self.a.sigValueChanged.connect(self.aChanged)
         self.b.sigValueChanged.connect(self.bChanged)
+        self.exefunction = None
 
     def aChanged(self):
         self.b.setValue(1.0 / self.a.value(), blockSignal=self.bChanged)
@@ -46,13 +61,16 @@ class Filters():
         self.listFilters = {} if not list_f else list_f
         self.nb = len(self.listFilters.keys())
         self.tree = ParameterTree()
-        self.add = addOneSetting(self)
-        self.listFilters[self.nb] =self.add
+        # self.add = addOneSetting(self)
+        # self.listFilters[self.nb] =self.add
         self.nb += 1
         self.CreateTree()
-
+    
+    @Try_decorator
     def addNew(self,val):
-        self.p.insertChild(self.add, OneSetting(val))
+        setting =OneSetting(val)
+        print(setting)
+        self.p.addChild(setting)
         # self.p.removeChild(self.p.children()[1])
         # self.p.addChild(OneSetting(val))
         # self.p
@@ -87,6 +105,7 @@ class Layout_Parameters_Type(QWidget):
         self.layout_param =self.vlayout_parameters
 
 
+
 class OneGraph():
     def __init__(self,frame_graph,layout_parameters,i,parent) -> None:
         """Creates an object that will manage the event of a box
@@ -101,6 +120,7 @@ class OneGraph():
         self.ui_graph = None
         self.id = i
         self.parent = parent
+        
         
         # Init layout of the parameters box
         self.ui_parameters = Layout_Parameters_Type()
@@ -125,6 +145,9 @@ class OneGraph():
         """
         self.add_paramUi_to_layout()
         self.parent.current_id = self.id
+        try:
+            self.ui_graph.update_settings()
+        except: pass
 
 
     def oc_comboBox_type_change(self):
@@ -176,6 +199,7 @@ class OneGraph():
                             self.id,
                             self.parent)
         self.add_setting_to_param()
+
 
 
 
@@ -282,13 +306,29 @@ class EMGExplorer(QMainWindow):
         
    
         self.interactivity_fileSystem()
-        print('iiiiiiniiit')
       
+
+        # SETTINGS INIT
         self.setting = {0:OneSetting('Custom parameter')}
+        
+
         self.paramtre = Filters(self.setting)
         self.layout_setting.addWidget(self.paramtre.tree)
 
+        self.comboExpandable = ComboBoxExpandable()
+        self.comboExpandable.setData(PROCESSING_NAME)
+        self.layout_setting.addWidget(self.comboExpandable)
+
+        self.comboExpandable.pathChanged.connect(self.oc_add_filter)
+        
+        print('iiiiiiniiit')
+
+
         self.show()
+
+    def oc_add_filter(self,path):
+        print(f"{path[-1]}_[{'_'.join(path[:-1])}] ")
+        self.paramtre.addNew(f"{path[-1]}_[{'_'.join(path[:-1])}] " )
 
     
     def get_dataChannel(self):
@@ -618,10 +658,11 @@ class EMGExplorer(QMainWindow):
 
 
 def main():
+    print(PROCESSING)
     app = QApplication(sys.argv)
     ex = EMGExplorer()
     ex.raise_()
-
+    
     sys.exit(app.exec_())
 
 
