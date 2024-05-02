@@ -19,73 +19,88 @@ def Try_decorator(function):
 class OneSetting(pTypes.GroupParameter):
 
     @Try_decorator
-    def __init__(self, name):
+    def __init__(self, c_f,name,):
+        self.function = c_f
         opts = {'name':name}
         opts['type'] = 'bool'
         opts['value'] = True
         pTypes.GroupParameter.__init__(self, **opts)
+
+        # create parameters
+        var = self.function.__code__.co_varnames[:self.function.__code__.co_argcount]
+        var_default = self.function.__defaults__
+        if var_default:
+            var_default = [None for i in range(len(var)-len(var_default))] + list(var_default)
+        else:
+            var_default = [None for i in range(len(var))]
+        
+        #action
         self.addChild({'name': 'Delete', 'type': 'action'},)
-        self.addChild({'name': 'pos = x', 'type': 'float', 'value': 0, 'siPrefix': True})
-        self.addChild({'name': 'A = ...', 'type': 'float', 'value': 7, 'suffix': 'Hz', 'siPrefix': True})
-        self.addChild({'name': 'B = ...', 'type': 'float', 'value': 1/7., 'suffix': 'Hz', 'siPrefix': True})
-        self.a = self.param('A = ...')
-        self.b = self.param('B = ...')
-        self.a.sigValueChanged.connect(self.aChanged)
-        self.b.sigValueChanged.connect(self.bChanged)
+
+        #variables
+        for i,v in enumerate(var):
+            
+            d = var_default[i]
+            if d:
+                self.addChild({'name': v, 'type': type(d).__name__, 'value': d, 'siPrefix': True})
+            else:
+                self.addChild({'name': v})
+            self.param(v).sigValueChanged.connect(self.aChanged)
+
         self.exefunction = None
 
     def aChanged(self):
-        self.b.setValue(1.0 / self.a.value(), blockSignal=self.bChanged)
-
-    def bChanged(self):
-        self.a.setValue(1.0 / self.b.value(), blockSignal=self.aChanged)
-
-class addOneSetting(pTypes.GroupParameter):
-    def __init__(self, parent_ ):
-        opts = {'name':'add'}
-        opts['type'] = 'group'
-        opts['addText'] = "Add"
-        self.dict_filter = {'filter1':'name1'}
-        opts['addList'] = list(self.dict_filter.keys())
-        self.parent_ = parent_ 
-        pTypes.GroupParameter.__init__(self, **opts)
+        print(' a ')
     
-    def addNew(self, typ):
-        val = self.dict_filter[typ]
-        self.parent_.addNew(val)
+
+# class addOneSetting(pTypes.GroupParameter):
+#     def __init__(self, parent_ ):
+#         opts = {'name':'add'}
+#         opts['type'] = 'group'
+#         opts['addText'] = "Add"
+#         self.dict_filter = {'filter1':'name1'}
+#         opts['addList'] = list(self.dict_filter.keys())
+#         self.parent_ = parent_ 
+#         pTypes.GroupParameter.__init__(self, **opts)
+    
+#     def addNew(self, typ):
+#         val = self.dict_filter[typ]
+#         self.parent_.addNew(val)
         
 
 
 class Filters():
+    """ParameterTree of filters
+    """
     def __init__(self,list_f=None) -> None:
-        self.listFilters = {} if not list_f else list_f
-        self.nb = len(self.listFilters.keys())
+        self.listChildren = {} if not list_f else list_f
+        self.nb = len(self.listChildren.keys())
         self.tree = ParameterTree()
-        # self.add = addOneSetting(self)
-        # self.listFilters[self.nb] =self.add
-        self.nb += 1
+        
         self.CreateTree()
     
     @Try_decorator
-    def addNew(self,val):
-        setting =OneSetting(val)
-        print(setting)
+    def addNew(self,c_f,path):
+        """Add a filter
+
+        Args:
+            val (_type_): _description_
+        """
+        val = f"{path[-1]}_[{'_'.join(path[:-1])}] "
+        setting = OneSetting(c_f,val)
+        setting.param('Delete').sigActivated.connect(partial(self.oc_delete,self.nb))
         self.p.addChild(setting)
-        # self.p.removeChild(self.p.children()[1])
-        # self.p.addChild(OneSetting(val))
-        # self.p
-
-
-    def addFilter(self,filter):
-        self.listFilters[self.nb] = filter
-        # self.listFilters[self.nb].param('delete', 'delete').sigActivated.connect(delete)
-
+        self.listChildren[self.nb] = setting
         self.nb += 1
 
     def CreateTree(self):
-        print(self.listFilters)
-        self.p = Parameter.create(name='params', type='group', children=list(self.listFilters.values()))
+        self.p = Parameter.create(name='params', type='group', children=list(self.listChildren.values()))
         self.tree.addParameters(self.p)
+
+    def oc_delete(self,nb):
+        print(nb)
+        self.p.removeChild(self.listChildren[nb])
+        self.listChildren.pop(nb)
 
 def deleteItemsOfLayout(layout):
      if layout is not None:
@@ -309,10 +324,10 @@ class EMGExplorer(QMainWindow):
       
 
         # SETTINGS INIT
-        self.setting = {0:OneSetting('Custom parameter')}
+        # self.setting = {0:OneSetting(None,'Custom parameter')}
         
 
-        self.paramtre = Filters(self.setting)
+        self.paramtre = Filters()
         self.layout_setting.addWidget(self.paramtre.tree)
 
         self.comboExpandable = ComboBoxExpandable()
@@ -327,8 +342,14 @@ class EMGExplorer(QMainWindow):
         self.show()
 
     def oc_add_filter(self,path):
-        print(f"{path[-1]}_[{'_'.join(path[:-1])}] ")
-        self.paramtre.addNew(f"{path[-1]}_[{'_'.join(path[:-1])}] " )
+        """add a filter to the pipeline
+
+        Args:
+            path (str): path to the clicked section of the menu. eg ['group 1','name']
+        """
+        print(path)
+        print(get_item_from_path(PROCESSING,path))
+        self.paramtre.addNew(get_item_from_path(PROCESSING,path),path )
 
     
     def get_dataChannel(self):

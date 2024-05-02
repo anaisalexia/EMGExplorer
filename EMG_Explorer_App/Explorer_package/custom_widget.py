@@ -34,8 +34,16 @@ def menu_from_dict(dict_):
 
 
 class ComboBoxExpandable(QtWidgets.QPushButton):
+    """Exandable comboBox
+
+    Args:
+        QtWidgets (_type_): _description_
+    """
     currentTextChanged = QtCore.pyqtSignal(str)
     pathChanged = QtCore.pyqtSignal(list)
+
+    def __init__(self):
+        super().__init__()
 
     def setData(self, value):
         menu = QtWidgets.QMenu(self)
