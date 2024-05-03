@@ -4,6 +4,7 @@ from Explorer_package.loading_function import *
 from PyQt5.QtCore import Qt
 import os
 
+PATH_PIPELINE = './processing pipelines/'
 
 def Try_decorator(function):
     print('in deco')
@@ -17,28 +18,41 @@ def Try_decorator(function):
     return wrapper
 
 class OneSetting(pTypes.GroupParameter):
+    delete_trigger = pyqtSignal('PyQt_PyObject')
+    position_trigger = pyqtSignal('PyQt_PyObject','PyQt_PyObject')
 
     @Try_decorator
-    def __init__(self, c_f,name,):
+    def __init__(self, c_f,name,pos,p,path):
         self.function = c_f
+        self.path = path
+        self.position = pos
+        self.parent_param = p
         opts = {'name':name}
         opts['type'] = 'bool'
         opts['value'] = True
         pTypes.GroupParameter.__init__(self, **opts)
 
+
+
         # create parameters
-        var = self.function.__code__.co_varnames[:self.function.__code__.co_argcount]
+        self.var = self.function.__code__.co_varnames[:self.function.__code__.co_argcount]
         var_default = self.function.__defaults__
         if var_default:
-            var_default = [None for i in range(len(var)-len(var_default))] + list(var_default)
+            var_default = [None for i in range(len(self.var)-len(var_default))] + list(var_default)
         else:
-            var_default = [None for i in range(len(var))]
+            var_default = [None for i in range(len(self.var))]
         
         #action
-        self.addChild({'name': 'Delete', 'type': 'action'},)
+        self.addChild({'name': 'Functionality', 'type': 'group', 'children': [
+        {'name': 'Delete', 'type': 'action'},
+        {'name' : 'Position', 'type':'str','value':self.position}
+        ]})
+        self.param('Functionality','Delete').sigActivated.connect(self.oc_delete_handler)
+        self.param('Functionality','Position').sigValueChanged.connect(self.oc_position_handler)
+
 
         #variables
-        for i,v in enumerate(var):
+        for i,v in enumerate(self.var):
             
             d = var_default[i]
             if d:
@@ -48,24 +62,18 @@ class OneSetting(pTypes.GroupParameter):
             self.param(v).sigValueChanged.connect(self.aChanged)
 
         self.exefunction = None
+    
+    def oc_delete_handler(self):
+        print('in delete handler')
+        self.delete_trigger.emit(self.position)
+
+    def oc_position_handler(self,param,val):
+        self.position_trigger.emit(self.position,val)
+
 
     def aChanged(self):
         print(' a ')
     
-
-# class addOneSetting(pTypes.GroupParameter):
-#     def __init__(self, parent_ ):
-#         opts = {'name':'add'}
-#         opts['type'] = 'group'
-#         opts['addText'] = "Add"
-#         self.dict_filter = {'filter1':'name1'}
-#         opts['addList'] = list(self.dict_filter.keys())
-#         self.parent_ = parent_ 
-#         pTypes.GroupParameter.__init__(self, **opts)
-    
-#     def addNew(self, typ):
-#         val = self.dict_filter[typ]
-#         self.parent_.addNew(val)
         
 
 
@@ -87,8 +95,10 @@ class Filters():
             val (_type_): _description_
         """
         val = f"{path[-1]}_[{'_'.join(path[:-1])}] "
-        setting = OneSetting(c_f,val)
-        setting.param('Delete').sigActivated.connect(partial(self.oc_delete,self.nb))
+        setting = OneSetting(c_f,val,self.nb,self,path[:-1])
+        setting.delete_trigger.connect(self.oc_delete)
+        setting.position_trigger.connect(self.oc_position)
+        
         self.p.addChild(setting)
         self.listChildren[self.nb] = setting
         self.nb += 1
@@ -97,10 +107,61 @@ class Filters():
         self.p = Parameter.create(name='params', type='group', children=list(self.listChildren.values()))
         self.tree.addParameters(self.p)
 
+    def shift_position(self,nb,type,nb_fin=None):
+        if not nb_fin:
+            nb_fin = self.nb 
+        if type == 'add':
+            for n in range(nb_fin-1,nb-1,-1):
+                print(n,'to',n+1)
+                self.listChildren[n+1] = self.listChildren[n]
+                self.listChildren[n+1].position = n + 1
+                self.listChildren[n+1].param('Functionality','Position').setValue(n+1,blockSignal=self.listChildren[n+1].oc_position_handler)
+
+        elif type == 'del':
+            for n in range(nb-2,nb_fin-1):
+                print(n+1,'to',n)
+                self.listChildren[n] = self.listChildren[n+1]
+                self.listChildren[n].position = n 
+                self.listChildren[n].param('Functionality','Position').setValue(n,blockSignal=self.listChildren[n].oc_position_handler)
+
+
     def oc_delete(self,nb):
         print(nb)
         self.p.removeChild(self.listChildren[nb])
         self.listChildren.pop(nb)
+        self.shift_position(nb,'del')
+        self.nb -= 1
+    
+    def oc_position(self,nb,new_val):
+        print(nb,new_val)
+        new_val = int(new_val)
+        self.p.removeChild(self.listChildren[nb])
+        self.p.insertChild(new_val,self.listChildren[nb])
+
+        
+        self.listChildren[nb].position = new_val
+        if nb > new_val:
+            print('shift add')
+            child = self.listChildren[nb]
+            self.shift_position(new_val,'add',nb)
+            self.listChildren[new_val] = child
+        if new_val > nb:
+            print('shift del')
+            child = self.listChildren[nb]
+            self.shift_position(new_val,'del',nb)
+            self.listChildren[new_val] = child
+
+    def setting_to_json(self):
+        dictjson = {}
+        for n in range(self.nb):
+            setting = self.listChildren[n]
+            dictjson[n]={'name':setting.function.__name__,
+                         'path':setting.path,
+                         'arguments':dict(zip(setting.var,[setting.param(v).value() for v in setting.var]))}
+
+        print(dictjson)
+        return dictjson
+
 
 def deleteItemsOfLayout(layout):
      if layout is not None:
@@ -117,7 +178,7 @@ class Layout_Parameters_Type(QWidget):
     def __init__(self):
         super().__init__()
         loadUi( 'hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\layout_parameters_type.ui',self)
-        self.layout_param =self.vlayout_parameters
+        self.layout_param = self.vlayout_parameters
 
 
 
@@ -142,7 +203,7 @@ class OneGraph():
         for fc in [None] + list(PLOT.keys()):
             self.ui_parameters.comboBox_type.addItem(fc)
         self.layout_parameters = layout_parameters
-
+        self.selectedData = None
 
         # Init layout of the graph box
         self.layout_graph = QGridLayout()
@@ -150,11 +211,15 @@ class OneGraph():
         self.layout_graph.addWidget(self.b)
         frame_graph.setLayout(self.layout_graph)
 
-
         self.b.clicked.connect(self.oc_Buttonclick)
         self.ui_parameters.comboBox_type.currentIndexChanged.connect(self.oc_comboBox_type_change)
 
+        # tab data interactivity
+        self.selectDataWindow = None
+        self.ui_parameters.groupBox_dataSelection.clicked.connect(self.oc_groupBoxChecked)
+        self.ui_parameters.button_select.clicked.connect(self.oc_selectData)
 
+    # TAB PARAMETERS
     def oc_Buttonclick(self):
         """Opens the menu of the current box
         """
@@ -177,6 +242,30 @@ class OneGraph():
         else:
             self.ui_graph.clearGraph()
 
+    # TAB DATA
+    def oc_groupBoxChecked(self,state):
+        if state == Qt.Checked:
+            pass
+        #::::: update list graph ?
+        else:
+            pass
+        #::update list graph ?
+
+    def oc_selectData(self):
+        if self.selectDataWindow is None:
+            self.selectDataWindow = WindowChannelSelection(self.parent)
+            self.selectDataWindow.sendData.connect(self.save_selectedData)
+        self.selectDataWindow.show()
+
+    def save_selectedData(self,dictData):
+        self.selectedData = dictData
+        print('selected DATA',self.selectedData)
+        self.selectDataWindow.close()
+
+    def get_selectedData(self):
+        return self.selectedData
+
+    # GRAPH
     def update_drawing(self):
         self.ui_graph.clearGraph()
         data = self.ui_graph.get_data()
@@ -185,8 +274,10 @@ class OneGraph():
     def add_paramUi_to_layout(self):
         """Changes the settings of the graph
         """
+        print('add layout ')
         deleteItemsOfLayout(self.layout_parameters)
         self.layout_parameters.addWidget(self.ui_parameters)
+        self.parent.tabWidget.setCurrentIndex(0)
 
     def add_graphUi_to_layout(self):
         """add a graph to the box
@@ -214,6 +305,10 @@ class OneGraph():
                             self.id,
                             self.parent)
         self.add_setting_to_param()
+
+    def clearPlot(self):
+        if self.ui_graph:
+            self.ui_graph.clearGraph()
 
 
 
@@ -246,15 +341,235 @@ class Layout(QWidget):
         loadUi(f'hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\Layout{nb}_{nb_v}.ui', self)
 
 
-class NewFilterWindow(QWidget):
+# class NewFilterWindow(QWidget):
 
-    # automatic name after preprocessing function + nb of the step
-    # param : add, delete, change position
+#     # automatic name after preprocessing function + nb of the step
+#     # param : add, delete, change position
 
-    def __init__(self):
+#     def __init__(self):
+#         super().__init__()
+#         # self.parent = parent
+#         loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\GraphParameters.ui', self)
+
+
+
+
+class WindowChannelSelection(QWidget):
+    sendData = pyqtSignal('PyQt_PyObject')
+    
+    def __init__(self,p):
         super().__init__()
-        # self.parent = parent
-        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\GraphParameters.ui', self)
+        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\Form_selection_channels.ui', self)
+        self.p = p
+        self.dictSelection = {}
+
+        self.tree = QtWidgets.QTreeWidget()
+        loader = self.p.get_currentLoader()
+        dict_group = loader.getGroup()
+
+        self.button_selectAll.clicked.connect(partial(self.oc_selectAll,self.tree.invisibleRootItem()))
+        self.button_deselectAll.clicked.connect(partial(self.oc_deselectAll,self.tree.invisibleRootItem()))
+        self.button_Select.clicked.connect(self.oc_select)
+
+        for gr in list(dict_group.keys()):
+            item_group = QtWidgets.QTreeWidgetItem(self.tree)
+            item_group.setText(0,str(gr))
+            item_group.setFlags(item_group.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
+
+            for v in list(dict_group[gr].keys()):
+                item_var = QtWidgets.QTreeWidgetItem(item_group)
+                item_var.setFlags(item_var.flags() | Qt.ItemIsUserCheckable)
+                item_var.setText(0,str(v))
+                item_var.setCheckState(0, Qt.Unchecked)
+
+                for dim_name,ch in list(dict_group[gr][v].items()):
+                    for c in ch:
+                        item_ch = QtWidgets.QTreeWidgetItem(item_var)
+                        item_ch.setFlags(item_ch.flags() | Qt.ItemIsUserCheckable)
+                        item_ch.setText(0,str(c))
+                        item_ch.setCheckState(0, Qt.Unchecked)
+
+        self.layout_tree.addWidget(self.tree)
+
+    def oc_deselectAll(self,item):
+        nb_children = item.childCount()
+        item.setCheckState(0, Qt.Unchecked)
+
+        if nb_children > 0:
+
+            for i in range(nb_children):
+                self.oc_deselectAll(item.child(i))
+  
+
+    def oc_selectAll(self,item):
+        nb_children = item.childCount()
+        item.setCheckState(0, Qt.Checked)
+
+        if nb_children > 0:
+            for i in range(nb_children):
+                self.oc_selectAll(item.child(i))
+      
+
+    def get_selectedItems(self): 
+
+        def has_childLeaf(item):
+            nb_children = item.childCount()
+            for i in range(nb_children):
+                child = item.child(i)
+                nb_chil_children = child.childCount()
+                if nb_chil_children > 0:
+                    return False
+            return True
+                    
+            
+        def recurse(item):
+                list_dict = {}
+                if has_childLeaf(item):
+                    list_checked = []
+                    for j in range(item.childCount()):
+                         if  item.child(j).checkState(0) == Qt.Checked :
+                            list_checked.append(item.child(j).text(0))
+                    return {item.text(0) : list_checked }
+                    
+                else:
+                    for i in range (item.childCount()):
+                        list_dict[item.child(i).text(0)] = recurse(item.child(i))
+                return list_dict
+        
+        return recurse(self.tree.invisibleRootItem())
+
+    def oc_select(self):
+        dictData= self.get_selectedItems()
+        self.sendData.emit(dictData)
+
+
+
+    # @Try_decorator
+    # def init_menu(self):
+    #     self.toolbutton = QtWidgets.QToolButton(self)
+    #     self.toolbutton.setText('Group')
+    #     self.toolmenu = QtWidgets.QMenu(self)
+
+    #     file_name = self.p.listWidget_file.currentItem().text()
+    #     actionSelectAll = self.toolmenu.addAction('Select all')
+    #     actionSelectAll.setCheckable(True)
+    #     actionSelectAll.triggered.connect(self.oc_selectAllGroup)
+    #     actionDeselectAll = self.toolmenu.addAction('Deselect all')
+    #     actionDeselectAll.setCheckable(True)
+    #     actionDeselectAll.triggered.connect(self.oc_deselectAllGroup)
+
+    #     #add to layout
+    #     self.lcomboBox_group.addWidget(self.toolbutton)
+    #     print('dict group selection',self.p.dataLoader[file_name].dict_group)
+    #     for group in self.p.dataLoader[file_name].dict_group.keys():
+    #         print('groupe selection init',group)
+    #         action = self.toolmenu.addAction(group)
+    #         action.setCheckable(True)
+    #         action.triggered.connect(partial(self.oc_groupChecked,group))
+    #     self.toolbutton.setMenu(self.toolmenu)
+    #     self.toolbutton.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+
+    # def init_menuVar(self):
+    #     self.toolbuttonVar = QtWidgets.QToolButton(self)
+    #     self.toolbuttonVar.setText('Variable')
+    #     self.toolmenuVar = QtWidgets.QMenu(self)
+
+    #     # interactivity
+    #     actionSelectAll = self.toolmenuVar.addAction('Select all')
+    #     actionSelectAll.setCheckable(True)
+    #     actionSelectAll.triggered.connect(self.oc_selectAllVar)
+    #     actionDeselectAll = self.toolmenuVar.addAction('Deselect all')
+    #     actionDeselectAll.setCheckable(True)
+    #     actionDeselectAll.triggered.connect(self.oc_deselectAllVar)
+
+    #     # add to layout
+    #     self.lcomboBox_var.addWidget(self.toolbuttonVar)
+    #     self.toolbuttonVar.setMenu(self.toolmenuVar)
+    #     self.toolbuttonVar.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+
+    # def update_variable(self,group,type):
+
+    #     file_name = self.p.listWidget_file.currentItem().text()
+    #     dict_group = self.p.dataLoader[file_name].dict_group
+
+    #     if type == 'add':
+    #         # add variable
+    #         for var in list(dict_group[group].keys()):
+    #             action = self.toolmenuVar.addAction(f'{var}/{group}')
+    #             action.setCheckable(True)
+    #             action.triggered.connect(partial(self.oc_varChecked,group,var))
+    #     else:
+    #         # delete variables
+    #         for a in self.toolmenuVar.actions():
+    #             if a.text().split('/')[-1] == group:
+    #                 self.toolmenuVar.removeAction(a)
+
+    # def update_channel(self,group,var,type):
+
+    #     file_name = self.p.listWidget_file.currentItem().text()
+    #     dict_group = self.p.dataLoader[file_name].dict_group
+    #     channels = list(dict_group[group][var].keys())
+
+    #     if len(channels)!=0:
+    #         channels =  dict_group[group][var][channels[0]]
+
+    #         if type == 'add':
+    #             for ch in channels:
+    #                 item = QListWidgetItem(f'{ch}/var/group')
+    #                 self.listWidget.addItem(item)
+    #                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+    #                 item.setCheckState(Qt.Unchecked)
+    #                 # item.itemChanged.connect(self.oc_itemChanged)
+
+    # def oc_oc_itemChanged(self,item):
+    #     if item.isChecked():
+    #         pass#::::::::::
+    #     else:
+    #         pass
+    #     #:::::::::::::::::::
+
+    # def oc_groupChecked(self,group,checked):
+    #     if checked:
+    #         self.dictSelection[group] = {}
+    #         self.update_variable(group,'add')
+    #     else:
+    #         try:
+    #             self.dictSelection.pop(group)
+    #             self.update_variable(group,'del')
+    #         except:
+    #             print('no group in dict selection')
+
+
+    # def oc_varChecked(self,group,var,checked):
+    #     if checked:
+    #         self.dictSelection[group][var] = []
+    #         self.update_channel(group,var,'add')
+
+    #     else:
+    #         try:
+    #             self.dictSelection[group].pop(var)
+    #             self.update_channel(group,var,'del')
+
+    #         except:
+    #             print('no var in group in dict Selection')
+
+
+    # def oc_selectAllGroup(self):
+    #     for a in self.toolmenu.actions():
+    #         a.setChecked(True)
+
+    # def oc_deselectAllGroup(self):
+    #     for a in self.toolmenu.actions():
+    #         a.setChecked(False)
+
+    # def oc_selectAllVar(self):
+    #     for a in self.toolmenuVar.actions():
+    #         a.setChecked(True)
+
+    # def oc_deselectAllVar(self):
+    #     for a in self.toolmenuVar.actions():
+    #         a.setChecked(False)
+
 
 class SummaryWindow(QWidget):
 
@@ -327,14 +642,15 @@ class EMGExplorer(QMainWindow):
         # self.setting = {0:OneSetting(None,'Custom parameter')}
         
 
-        self.paramtre = Filters()
-        self.layout_setting.addWidget(self.paramtre.tree)
+        self.paramtree = Filters()
+        self.layout_setting.addWidget(self.paramtree.tree)
 
         self.comboExpandable = ComboBoxExpandable()
         self.comboExpandable.setData(PROCESSING_NAME)
-        self.layout_setting.addWidget(self.comboExpandable)
+        self.layout_expComboBox.addWidget(self.comboExpandable)
 
         self.comboExpandable.pathChanged.connect(self.oc_add_filter)
+        self.button_saveFilter.clicked.connect(self.oc_saveFilter)
         
         print('iiiiiiniiit')
 
@@ -349,9 +665,20 @@ class EMGExplorer(QMainWindow):
         """
         print(path)
         print(get_item_from_path(PROCESSING,path))
-        self.paramtre.addNew(get_item_from_path(PROCESSING,path),path )
+        self.paramtree.addNew(get_item_from_path(PROCESSING,path),path )
 
-    
+    def oc_saveFilter(self):
+        dictjson = self.paramtree.setting_to_json()
+        namepath = QFileDialog.getSaveFileName(self, 'Save File',
+                                       #"/home/jana/untitled.png",
+                                       "Json (*.json)")
+        if os.path.exists(f'{namepath[0]}.json'):
+            print('the file exist already')
+        else:
+            with open(f'{namepath[0]}.json', 'w') as f:
+                json.dump(dictjson, f)
+
+
     def get_dataChannel(self):
         file_name = self.listWidget_file.currentItem().text()
         loader = self.dataLoader[file_name]
@@ -420,7 +747,8 @@ class EMGExplorer(QMainWindow):
 
     def oc_newFilter(self):
         if self.wnewFilter is None:
-            self.wnewFilter = NewFilterWindow()
+            # self.wnewFilter = NewFilterWindow()
+            self.wnewFilter = WindowChannelSelection(self)
         self.wnewFilter.show()
 
 
@@ -628,6 +956,12 @@ class EMGExplorer(QMainWindow):
             self.label_timeline_dim.setText('no dim')
             self.comboBox_dim.addItem('None')
 
+        self.oc_comboBox_dim_change()
+
+
+    def clearAllPlot(self):
+        for plot in list(self.dict_layout_graph.values()):
+           plot.clearPlot() 
 
     # file system interactivity
     def oc_ListWidget_change(self,item):    
@@ -651,12 +985,30 @@ class EMGExplorer(QMainWindow):
        
 
     def oc_comboBox_group_change(self,):
+        """When triggered, the list of variable is changed, the plot are eventually cleared or updated
+        """
         print('oc combo')
+
         last_selection = self.comboBox_variable.currentText()
+        # update the list of variables
+
         self.update_fileSystem_comboBox_Variable()
-        self.comboBox_variable.setCurrentIndex(np.max([0,self.comboBox_variable.findText(last_selection)]))
+        foundText = self.comboBox_variable.findText(last_selection)
+        self.comboBox_variable.setCurrentIndex(np.max([0,foundText]))
+
+        #clear the plot if the last variable selected is not in the new list
+        if foundText == -1:
+            self.clearAllPlot()
+
+        else:
+            self.oc_comboBox_dim_change()
+
+      
+
 
     def oc_comboBox_variable_change(self,):
+        """When a variable is selected, the list of displayable channels are changed
+        """
         print('oc var')
         self.update_fileSystem_comboBox_Channel()
 
