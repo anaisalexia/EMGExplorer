@@ -171,7 +171,10 @@ class MyDataLoaderNC(MyDataLoader):
         """
         # Extract the variables
         self.dict_group = walkDatatree_getPathDataset(self.data,{})
-        print(self.dict_group)
+        print('dict group after load',self.dict_group)
+
+    def getGroup(self):
+        return self.dict_group
 
     def getData(self,group,var,dim,channel):
         """Returns the selected data
@@ -200,8 +203,6 @@ class MyDataLoaderNC(MyDataLoader):
         Returns:
             np.array: 
         """
-       
-
         return self.data[group][var] 
     
     def setData(self,group,var,channel,data):

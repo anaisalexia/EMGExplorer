@@ -1,0 +1,1 @@
+{"0": {"name": "full_wave", "path": ["processing_function_perso"], "arguments": {"emg": null}}, "1": {"name": "butterfilter", "path": ["processing_function_perso"], "arguments": {"emg": null, "order": 2, "c_f": 10, "type": "lowpass", "s_f": 1000}}}

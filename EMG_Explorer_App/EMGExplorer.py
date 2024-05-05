@@ -4,7 +4,6 @@ from Explorer_package.loading_function import *
 from PyQt5.QtCore import Qt
 import os
 
-PATH_PIPELINE = './processing pipelines/'
 
 def Try_decorator(function):
     print('in deco')
@@ -80,12 +79,15 @@ class OneSetting(pTypes.GroupParameter):
 class Filters():
     """ParameterTree of filters
     """
-    def __init__(self,list_f=None) -> None:
+    def __init__(self,list_f=None,path=None) -> None:
         self.listChildren = {} if not list_f else list_f
         self.nb = len(self.listChildren.keys())
+        print('nb child init', self.nb)
         self.tree = ParameterTree()
+        self.path = path
         
         self.CreateTree()
+
     
     @Try_decorator
     def addNew(self,c_f,path):
@@ -101,11 +103,47 @@ class Filters():
         
         self.p.addChild(setting)
         self.listChildren[self.nb] = setting
+        print('child param added pos:', self.nb,setting)
         self.nb += 1
 
+    def clearTree(self):
+        self.p.clearChildren()
+
     def CreateTree(self):
-        self.p = Parameter.create(name='params', type='group', children=list(self.listChildren.values()))
-        self.tree.addParameters(self.p)
+        print('In Tree Creation')
+        if self.path:
+            self.p = Parameter.create(name='params', type='group',children=list(self.listChildren.values()))
+            # self.LoadJson()
+            self.tree.addParameters(self.p)
+
+        else:
+            self.p = Parameter.create(name='params', type='group', children=list(self.listChildren.values()))
+            self.tree.addParameters(self.p)
+
+    def LoadJson(self,path):
+        # self.p.clearChildren()
+        self.path = path
+        f = open(self.path)
+        data = json.load(f)
+
+        for pos,process in data.items():
+            pos = int(pos)
+            # get function
+            func = get_item_from_path(PROCESSING,process['path'] + [process['name']])
+            # get path
+            path = process['path'] + [process['name']]
+            # add new
+            print('before add New',func, path)
+            self.addNew(func,path)
+            # change argument
+            print('pos and process',pos,process)
+            for name_arg,val_arg in process['arguments'].items():
+                # put the default value
+                print(name_arg,val_arg,self.listChildren[pos].param(name_arg).value())
+                self.listChildren[pos].param(name_arg).setValue(val_arg)
+                print(name_arg,val_arg,self.listChildren[pos].param(name_arg).value())
+
+        
 
     def shift_position(self,nb,type,nb_fin=None):
         if not nb_fin:
@@ -175,10 +213,50 @@ def deleteItemsOfLayout(layout):
 
 
 class Layout_Parameters_Type(QWidget):
-    def __init__(self):
+    signal_IndependantDataChecked = pyqtSignal(bool)
+    selectedDataChanged = pyqtSignal()
+
+    def __init__(self,p=None):
+        self.parent = p
         super().__init__()
         loadUi( 'hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\layout_parameters_type.ui',self)
         self.layout_param = self.vlayout_parameters
+        self.selectedData = {}
+
+    # tab data interactivity
+        self.selectDataWindow = None
+        self.groupBox_dataSelection.clicked.connect(self.oc_groupBoxChecked)
+        self.button_select.clicked.connect(self.oc_selectData)
+
+        self.dataIndependent = False
+
+    def oc_selectData(self):
+        if self.selectDataWindow is None:
+            self.selectDataWindow = WindowChannelSelection(self.parent)
+            self.selectDataWindow.sendData.connect(self.save_selectedData)
+        self.selectDataWindow.show()
+
+    def save_selectedData(self,dictData):
+        self.selectedData = dictData
+        print('selected DATA',self.selectedData)
+        self.selectedDataChanged.emit()
+        self.selectDataWindow.close()
+
+        # TAB DATA
+
+    def isDataIndependent(self):
+        return self.dataIndependent
+    
+    def oc_groupBoxChecked(self,state):
+        if state == Qt.Checked:
+            self.dataIndependent = True
+            
+        #::::: update list graph ?
+        else:
+            self.dataIndependent = False
+
+        #::update list graph ?
+
 
 
 
@@ -199,7 +277,7 @@ class OneGraph():
         
         
         # Init layout of the parameters box
-        self.ui_parameters = Layout_Parameters_Type()
+        self.ui_parameters = Layout_Parameters_Type(self.parent)
         for fc in [None] + list(PLOT.keys()):
             self.ui_parameters.comboBox_type.addItem(fc)
         self.layout_parameters = layout_parameters
@@ -214,10 +292,10 @@ class OneGraph():
         self.b.clicked.connect(self.oc_Buttonclick)
         self.ui_parameters.comboBox_type.currentIndexChanged.connect(self.oc_comboBox_type_change)
 
-        # tab data interactivity
-        self.selectDataWindow = None
-        self.ui_parameters.groupBox_dataSelection.clicked.connect(self.oc_groupBoxChecked)
-        self.ui_parameters.button_select.clicked.connect(self.oc_selectData)
+        # DATA, layout interactivity
+        # self.ui_parameters.selectedDataChanged.connect()
+
+        
 
     # TAB PARAMETERS
     def oc_Buttonclick(self):
@@ -242,25 +320,7 @@ class OneGraph():
         else:
             self.ui_graph.clearGraph()
 
-    # TAB DATA
-    def oc_groupBoxChecked(self,state):
-        if state == Qt.Checked:
-            pass
-        #::::: update list graph ?
-        else:
-            pass
-        #::update list graph ?
-
-    def oc_selectData(self):
-        if self.selectDataWindow is None:
-            self.selectDataWindow = WindowChannelSelection(self.parent)
-            self.selectDataWindow.sendData.connect(self.save_selectedData)
-        self.selectDataWindow.show()
-
-    def save_selectedData(self,dictData):
-        self.selectedData = dictData
-        print('selected DATA',self.selectedData)
-        self.selectDataWindow.close()
+    
 
     def get_selectedData(self):
         return self.selectedData
@@ -312,8 +372,6 @@ class OneGraph():
 
 
 
-
-
 def walkDatatree_setAttrDataset(info,node):
 
     if type(list(info.values())[0]) == dict:
@@ -331,8 +389,7 @@ def walkDatatree_setAttrDataset(info,node):
         
     
     return info
-
-
+                    
 
 
 class Layout(QWidget):
@@ -621,7 +678,6 @@ class EMGExplorer(QMainWindow):
         # Information window
         self.treeWidget.itemDoubleClicked.connect(self.oc_itemPressed)
         
-       
         self.nb_layout = 3
         self.nb_version = 1
 
@@ -642,8 +698,11 @@ class EMGExplorer(QMainWindow):
         # self.setting = {0:OneSetting(None,'Custom parameter')}
         
 
-        self.paramtree = Filters()
+        self.paramtree = Filters(None)
         self.layout_setting.addWidget(self.paramtree.tree)
+        self.button_openJson.clicked.connect(self.oc_openFilter)
+        self.button_clearFilter.clicked.connect(self.paramtree.clearTree)
+
 
         self.comboExpandable = ComboBoxExpandable()
         self.comboExpandable.setData(PROCESSING_NAME)
@@ -651,11 +710,25 @@ class EMGExplorer(QMainWindow):
 
         self.comboExpandable.pathChanged.connect(self.oc_add_filter)
         self.button_saveFilter.clicked.connect(self.oc_saveFilter)
+
         
         print('iiiiiiniiit')
 
 
         self.show()
+
+    def oc_openFilter(self):
+        # get path
+        path = QFileDialog.getOpenFileName(self, 'Open File',)
+                                       #"/home/jana/untitled.png",
+                                    #    "Json (*.json)")
+        #open filter
+        print('path open is', path)
+        self.paramtree.LoadJson(path[0])
+
+    def oc_clearFilter(self):
+        self.paramtree.clearTree()
+
 
     def oc_add_filter(self,path):
         """add a filter to the pipeline
