@@ -203,8 +203,44 @@ class MyDataLoaderNC(MyDataLoader):
         Returns:
             np.array: 
         """
+        # # return self.data[group][var] 
+
+        # data = self.data[group][var] 
+        # for t in ['Time','time']:
+        #     if t in data.dims:
+        #         x = np.array(data[t])
+                
+        #     else:
+        #         x = np.arange()
+
+        # x = data['time'].values
+        # y = data.values
         return self.data[group][var] 
     
+    def get_DataFromDict(self,dictData):
+        # ex from {'/': {'Trigger': [], 'Accelerations': ['Y'], 'HDsEMG': ['8', '9']}}
+        """return a list of xarray
+
+        Args:
+            dictData (_type_): _description_
+        """
+        data_list = []
+        def recursedata(dict_data,data):
+            for k,v in dict_data.items():
+                print('k',k)
+                if isinstance(v,list):
+                    for ch in v:
+                        if ch.isnumeric(): ch = int(ch)
+                        data_list.append(data[list(data[k]).index(ch),:])
+
+                else:
+                    recursedata(v,data[k])
+
+        recursedata(dictData,self.data)    
+
+        return data_list
+
+
     def setData(self,group,var,channel,data):
         pass
         

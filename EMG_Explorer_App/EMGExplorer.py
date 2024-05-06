@@ -237,18 +237,24 @@ class Layout_Parameters_Type(QWidget):
         self.selectDataWindow.show()
 
     def save_selectedData(self,dictData):
-        self.selectedData = dictData
+        print('save selection data')
+        # from dict Data to actual data
+        loader = self.parent.get_currentLoader()
+        self.selectedData = loader.get_DataFromDict(dictData)
+
         print('selected DATA',self.selectedData)
         self.selectedDataChanged.emit()
         self.selectDataWindow.close()
 
         # TAB DATA
-
     def isDataIndependent(self):
         return self.dataIndependent
     
+    def get_data(self):
+        return self.selectedData
+    
     def oc_groupBoxChecked(self,state):
-        if state == Qt.Checked:
+        if state :
             self.dataIndependent = True
             
         #::::: update list graph ?
@@ -293,7 +299,7 @@ class OneGraph():
         self.ui_parameters.comboBox_type.currentIndexChanged.connect(self.oc_comboBox_type_change)
 
         # DATA, layout interactivity
-        # self.ui_parameters.selectedDataChanged.connect()
+        self.ui_parameters.selectedDataChanged.connect(self.update_drawing)
 
         
 
@@ -321,15 +327,35 @@ class OneGraph():
             self.ui_graph.clearGraph()
 
     
-
+    
     def get_selectedData(self):
         return self.selectedData
 
     # GRAPH
+    def retrieve_Data(self):
+        print('retrieve_data')
+        if not self.ui_parameters.isDataIndependent():
+            # retrieve data from the mainwindow
+            data = self.ui_graph.get_data()
+            print('retrive not independent data',data)
+
+            
+
+        else:
+            #retrieve data from the parameters
+            data = self.ui_parameters.get_data()
+            print('retrive independent data',data)
+
+        print('retrieved dataaaa', data)
+        return data
+    
     def update_drawing(self):
-        self.ui_graph.clearGraph()
-        data = self.ui_graph.get_data()
-        self.ui_graph.draw(data)
+        if self.ui_graph:
+            self.ui_graph.clearGraph()
+            data = self.retrieve_Data()
+            print('update drawing',data)
+
+            self.ui_graph.draw(data)
 
     def add_paramUi_to_layout(self):
         """Changes the settings of the graph
@@ -440,8 +466,13 @@ class WindowChannelSelection(QWidget):
                 item_var.setCheckState(0, Qt.Unchecked)
 
                 for dim_name,ch in list(dict_group[gr][v].items()):
+                    item_dim = QtWidgets.QTreeWidgetItem(item_var)
+                    item_dim.setFlags(item_dim.flags() | Qt.ItemIsUserCheckable)
+                    item_dim.setText(0,str(dim_name))
+                    item_dim.setCheckState(0, Qt.Unchecked)
+
                     for c in ch:
-                        item_ch = QtWidgets.QTreeWidgetItem(item_var)
+                        item_ch = QtWidgets.QTreeWidgetItem(item_dim)
                         item_ch.setFlags(item_ch.flags() | Qt.ItemIsUserCheckable)
                         item_ch.setText(0,str(c))
                         item_ch.setCheckState(0, Qt.Unchecked)
@@ -486,7 +517,7 @@ class WindowChannelSelection(QWidget):
                     for j in range(item.childCount()):
                          if  item.child(j).checkState(0) == Qt.Checked :
                             list_checked.append(item.child(j).text(0))
-                    return {item.text(0) : list_checked }
+                    return list_checked 
                     
                 else:
                     for i in range (item.childCount()):

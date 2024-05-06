@@ -136,30 +136,37 @@ class PlotLine(pg.MultiPlotWidget):
         self.plot = self.addPlot(title=f'graph {self.id}')
         self.l = LayoutParameters()
         self.function = 'lineplot'
-        self.plotData = None
+        self.plotDataOriginal = None
         self.currentPath = ['None']
 
         self.init_layoutGraphInteractivity()
 
 
     def get_data(self):
-        return self.parent.get_dataChannel()
+        return [self.parent.get_dataChannel()]
 
 
-    def draw(self,data):
-        if isinstance(data,np.ndarray):
-            self.plotData = {'x':data[0,:],'y':data[1,:]}
-        
-        else:
-            y = data.values
-            for t in ['Time','time']:
-                if t in data.dims:
-                    x = np.array(data[t])
+    def draw(self,data_list=None):
+        print('draw plotline', data_list)
+        if data_list:
+            self.plotDataOriginal = data_list
 
-            self.plotData = {'x':x,'y':y}
+        self.clearGraph()
 
-        self.applyFilter(self.currentPath)
-        self.plot.enableAutoRange(True)
+        for data in self.plotDataOriginal:
+            if isinstance(data,np.ndarray):
+                self.plotData = {'x':data[0,:],'y':data[1,:]}
+            
+            else:
+                y = data.values
+                for t in ['Time','time']:
+                    if t in data.dims:
+                        x = np.array(data[t])
+
+                self.plotData = {'x':x,'y':y}
+
+            self.applyFilter()
+            self.plot.enableAutoRange(True)
 
 
 
@@ -169,21 +176,25 @@ class PlotLine(pg.MultiPlotWidget):
     # LAYOUT FUNCTIONNALITY
     def init_layoutGraphInteractivity(self):
         print('layout graph interactivity init')
-        self.l.processingPathChanged_handler.connect(self.applyFilter)
+        self.l.processingPathChanged_handler.connect(self.oc_draw)
 
-    def applyFilter(self,path):
-        print('apply filter :',path)
+    def oc_draw(self,path):
         self.currentPath = path
-        if path[0] == 'None':
+        self.draw()
+
+    def applyFilter(self):
+        print('apply filter :',self.currentPath)
+
+        if self.currentPath[0] == 'None':
             self.plot.plot(x=self.plotData['x'],y=self.plotData['y'])
+
         else:
-            self.clearGraph()
-            if path[0] == NAME_JSONFOLDER:
-                y = apply_jsonFilter(self.plotData['y'],path[1])
+            if self.currentPath[0] == NAME_JSONFOLDER:
+                y = apply_jsonFilter(self.plotData['y'],self.currentPath[1])
                 self.plot.plot(x=self.plotData['x'],y=y)
 
             else:
-                func = get_item_from_path(PROCESSING,path)
+                func = get_item_from_path(PROCESSING,self.currentPath)
                 print('function from path', func)
                 self.plot.plot(x=self.plotData['x'],y=func(self.plotData['y']))
 
@@ -204,26 +215,27 @@ class FFT(pg.MultiPlotWidget):
 
 
     def get_data(self):
-        return self.parent.get_dataChannel()
+        return [self.parent.get_dataChannel()]
 
-    def draw(self,data):
-        y = data.values
+    def draw(self,data_list):
+        for data in data_list:
+            y = data.values
 
-        for t in ['Time','time']:
-            if t in data.dims:
-                x = np.array(data[t])
+            for t in ['Time','time']:
+                if t in data.dims:
+                    x = np.array(data[t])
 
-        self.plot.plot(x=x,y=y)
+            self.plot.plot(x=x,y=y)
 
-        # self.fftplot.setMouseEnabled(x=True, y=False)
-        self.plot.showGrid(x=True)
-        # self.fftplot.setMenuEnabled(False)
-        # self.fftplot.setLabel('left', "Channel {} - Power".format(elec_id), "")
-        self.plot.setLabel('bottom', "frequency", "Hz")
-        self.plot.curves[0].setFftMode(True)
-        self.plot.enableAutoRange(True)
+            # self.fftplot.setMouseEnabled(x=True, y=False)
+            self.plot.showGrid(x=True)
+            # self.fftplot.setMenuEnabled(False)
+            # self.fftplot.setLabel('left', "Channel {} - Power".format(elec_id), "")
+            self.plot.setLabel('bottom', "frequency", "Hz")
+            self.plot.curves[0].setFftMode(True)
+            self.plot.enableAutoRange(True)
 
-        # self.fftplot.enableAutoRange(True)
+            # self.fftplot.enableAutoRange(True)
         
 
     def clearGraph(self):
@@ -357,14 +369,23 @@ class MultiplePlot2(pg.MultiPlotWidget):
         # mouseClickEvent is a pyqtgraph.GraphicsScene.mouseEvents.MouseClickEvent
         # print('clicked plot 0x{:x}, event: {}'.format(id(self), mouseClickEvent))
         try:
-            plot = self.scene().itemsNearEvent(mouseClickEvent)[1]
+            # plot = self.scene().itemsNearEvent(mouseClickEvent)[1]
 
             print(self.scene().itemsNearEvent(mouseClickEvent)[3].getData())
             print(self.graph_child)
             for child in self.graph_child:
                 print(child)
                 child.clearGraph()
-                child.draw(np.array(self.scene().itemsNearEvent(mouseClickEvent)[3].getData()))
+
+                data_scene = np.array(self.scene().itemsNearEvent(mouseClickEvent)[3].getData())
+                time = data_scene[0,:]
+                y = data_scene[1,:]
+                y_ch = np.arange(y.shape[0])
+                xrData = xr.DataArray(y,coords=[time],dims=['time'])
+
+
+                print('xrDataarry multiplot', xrData)
+                child.draw([xrData])
         except Exception as e:
             print(e,'no line')
             pass
