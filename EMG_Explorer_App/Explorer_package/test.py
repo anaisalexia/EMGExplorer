@@ -239,83 +239,83 @@ import datatree
 
 
 # TREEEEEEEEEEEEEEEEE
-# from PyQt5 import QtWidgets
-# from PyQt5 import QtCore
-# from PyQt5 import QtGui
-# from PyQt5.Qt import Qt
-# import sys
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
+from PyQt5 import QtGui
+from PyQt5.Qt import Qt
+import sys
 
-# def get_selectedItems(tree):
+def get_selectedItems(tree):
 
-#         def has_childLeaf(item):
-#             nb_children = item.childCount()
-#             for i in range(nb_children):
-#                 child = item.child(i)
-#                 nb_chil_children = child.childCount()
-#                 if nb_chil_children > 0:
-#                     return False
-#             return True
+        def has_childLeaf(item):
+            nb_children = item.childCount()
+            for i in range(nb_children):
+                child = item.child(i)
+                nb_chil_children = child.childCount()
+                if nb_chil_children > 0:
+                    return False
+            return True
                     
             
-#         def recurse(item):
-#                 list_dict = {}
-#                 if has_childLeaf(item):
-#                     list_checked = []
-#                     for j in range(item.childCount()):
-#                          if  item.child(j).checkState(0) == Qt.Checked :
-#                             list_checked.append(item.child(j).text(0))
-#                     return {item.text(0) : list_checked }
+        def recurse(item):
+                list_dict = {}
+                if has_childLeaf(item):
+                    list_checked = []
+                    for j in range(item.childCount()):
+                         if  item.child(j).checkState(0) == Qt.Checked :
+                            list_checked.append(item.child(j).text(0))
+                    return list_checked 
                     
-#                 else:
-#                     for i in range (item.childCount()):
-#                         list_dict[item.child(i).text(0)] = recurse(item.child(i))
-#                 return list_dict
+                else:
+                    for i in range (item.childCount()):
+                        list_dict[item.child(i).text(0)] = recurse(item.child(i))
+                return list_dict
         
-#         return recurse(tree.invisibleRootItem())
+        return recurse(tree.invisibleRootItem())
 
 
 
-# def main(): 
-#     app     = QtWidgets.QApplication(sys.argv)
-#     tree    = QtWidgets.QTreeWidget()
-#     headerItem  = QtWidgets.QTreeWidgetItem()
-#     item    = QtWidgets.QTreeWidgetItem()
+def main(): 
+    app     = QtWidgets.QApplication(sys.argv)
+    tree    = QtWidgets.QTreeWidget()
+    headerItem  = QtWidgets.QTreeWidgetItem()
+    item    = QtWidgets.QTreeWidgetItem()
 
-#     for i in range(3):
-#         parent = QtWidgets.QTreeWidgetItem(tree)
-#         parent.setText(0, "Parent {}".format(i))
-#         parent.setFlags(parent.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
-#         for x in range(5):
-#             child = QtWidgets.QTreeWidgetItem(parent)
-#             child.setFlags(child.flags() | Qt.ItemIsUserCheckable)
-#             child.setText(0, "Child {}".format(x))
-#             child.setCheckState(0, Qt.Checked)
-#             for y in range(5):
-#                 child2 = QtWidgets.QTreeWidgetItem(child)
-#                 child2.setFlags(child2.flags() | Qt.ItemIsUserCheckable)
-#                 child2.setText(0, "Child2 {}".format(y))
-#                 child2.setCheckState(0, Qt.Checked)
-#     tree.show() 
+    for i in range(3):
+        parent = QtWidgets.QTreeWidgetItem(tree)
+        parent.setText(0, "Parent {}".format(i))
+        parent.setFlags(parent.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
+        for x in range(5):
+            child = QtWidgets.QTreeWidgetItem(parent)
+            child.setFlags(child.flags() | Qt.ItemIsUserCheckable)
+            child.setText(0, "Child {}".format(x))
+            child.setCheckState(0, Qt.Checked)
+            for y in range(5):
+                child2 = QtWidgets.QTreeWidgetItem(child)
+                child2.setFlags(child2.flags() | Qt.ItemIsUserCheckable)
+                child2.setText(0, "Child2 {}".format(y))
+                child2.setCheckState(0, Qt.Checked)
+    tree.show() 
 
     
-#     print(get_selectedItems(tree))
-#     sys.exit(app.exec_())
+    print(get_selectedItems(tree))
+    sys.exit(app.exec_())
 
-# if __name__ == '__main__':
-#     main()
+if __name__ == '__main__':
+    main()
 
-import json
+# import json
  
-# Opening JSON file
-ROOT_FILTER = 'EMG_Explorer_App\\Explorer_package\\processing\\'
-f = open('EMG_Explorer_App\\Explorer_package\\processing pipelines\\test.json')
-data = json.load(f)
-sig = np.random.randint(1,10,(1,10))
-print(data,sig)
+# # Opening JSON file
+# ROOT_FILTER = 'EMG_Explorer_App\\Explorer_package\\processing\\'
+# f = open('EMG_Explorer_App\\Explorer_package\\processing pipelines\\test.json')
+# data = json.load(f)
+# sig = np.random.randint(1,10,(1,10))
+# print(data,sig)
 
-for nb,process in data.items():
-    func = PROCESSING[process['path']['name']]
-    arg = process['arguments']
-    arg[list(arg.keys())[0]] = x
-    x = func(arg)
+# for nb,process in data.items():
+#     func = PROCESSING[process['path']['name']]
+#     arg = process['arguments']
+#     arg[list(arg.keys())[0]] = x
+#     x = func(arg)
 

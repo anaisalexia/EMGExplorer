@@ -108,6 +108,7 @@ class Filters():
 
     def clearTree(self):
         self.p.clearChildren()
+        self.nb = 0
 
     def CreateTree(self):
         print('In Tree Creation')
@@ -126,8 +127,12 @@ class Filters():
         f = open(self.path)
         data = json.load(f)
 
+
         for pos,process in data.items():
-            pos = int(pos)
+            pos = int(pos) 
+
+            if pos < self.nb:
+                pos+=self.nb
             # get function
             func = get_item_from_path(PROCESSING,process['path'] + [process['name']])
             # get path
@@ -145,19 +150,33 @@ class Filters():
 
         
 
-    def shift_position(self,nb,type,nb_fin=None):
-        if not nb_fin:
-            nb_fin = self.nb 
-        if type == 'add':
-            for n in range(nb_fin-1,nb-1,-1):
-                print(n,'to',n+1)
+    def shift_position(self,new_nb,type,nb_current=None):
+        if nb_current == None:
+            print('shift default value')
+            nb_current = self.nb 
+
+        print('shiiiii1iif',nb_current, 'to',new_nb)
+
+        # if abs(new_nb-nb_current) == 1:
+        #     print('diff == 1')
+        #     tmp = self.listChildren[new_nb]
+        #     self.listChildren[new_nb] = self.listChildren[nb_current]
+        #     self.listChildren[new_nb].position = new_nb
+        #     self.listChildren[nb_current] = tmp
+        #     self.listChildren[new_nb].position = new_nb
+
+        # else:
+        if type == 'add': # new_nb<nb_current
+            for n in range(nb_current-1,new_nb-1,-1):
+                print('add',n,'to',n+1)
                 self.listChildren[n+1] = self.listChildren[n]
                 self.listChildren[n+1].position = n + 1
                 self.listChildren[n+1].param('Functionality','Position').setValue(n+1,blockSignal=self.listChildren[n+1].oc_position_handler)
 
-        elif type == 'del':
-            for n in range(nb-2,nb_fin-1):
-                print(n+1,'to',n)
+        elif type == 'del': # new_nb>nb_current
+            print('IN ELIF DEL',new_nb,nb_current )
+            for n in range(nb_current,new_nb):
+                print('del',n+1,'to',n)
                 self.listChildren[n] = self.listChildren[n+1]
                 self.listChildren[n].position = n 
                 self.listChildren[n].param('Functionality','Position').setValue(n,blockSignal=self.listChildren[n].oc_position_handler)
@@ -167,7 +186,10 @@ class Filters():
         print(nb)
         self.p.removeChild(self.listChildren[nb])
         self.listChildren.pop(nb)
-        self.shift_position(nb,'del')
+        if nb == self.nb-1:
+            pass
+        else:
+            self.shift_position(nb,'del')
         self.nb -= 1
     
     def oc_position(self,nb,new_val):
@@ -179,12 +201,12 @@ class Filters():
         
         self.listChildren[nb].position = new_val
         if nb > new_val:
-            print('shift add')
+            print('shift add', nb,new_val)
             child = self.listChildren[nb]
             self.shift_position(new_val,'add',nb)
             self.listChildren[new_val] = child
         if new_val > nb:
-            print('shift del')
+            print('shift del',nb,new_val)
             child = self.listChildren[nb]
             self.shift_position(new_val,'del',nb)
             self.listChildren[new_val] = child
