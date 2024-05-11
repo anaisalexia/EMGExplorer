@@ -173,8 +173,44 @@ class MyDataLoaderNC(MyDataLoader):
         self.dict_group = walkDatatree_getPathDataset(self.data,{})
         print('dict group after load',self.dict_group)
 
+    def getPath(self):
+        return self.path
+        
     def getGroup(self):
         return self.dict_group
+    
+    def getListGroup(self):
+        return list(self.dict_group.keys())
+
+    def getListVariable(self,group=None):
+        if group != None:
+            group_dict = self.dict_group[group]
+            return list(group_dict.keys())
+        else:
+            list_var = []
+            for gr in self.getListGroup():
+                list_var += list(self.dict_group[gr].keys())
+            return list_var
+
+    def getListChannel(self,group=None,var=None):
+        if group != None:
+            group_dict = self.dict_group[group]
+            if var != None:
+                group_var = group_dict[var]
+                return list(group_var.keys())
+            else:
+                list_ch = []
+                for var in list(group_dict.keys()):
+                    list_ch += list(self.dict_group[gr][var].keys())
+                return list_ch
+            
+        else:
+            list_ch = []
+            for gr in self.getListGroup():
+                for var in list(self.dict_group[gr].keys()):
+                    list_ch += list(self.dict_group[gr][var].keys())
+            return list_ch
+
 
     def getData(self,group,var,dim,channel):
         """Returns the selected data

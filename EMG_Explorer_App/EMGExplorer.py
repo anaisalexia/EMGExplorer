@@ -683,10 +683,121 @@ class WindowChannelSelection(QWidget):
 
 class SummaryWindow(QWidget):
 
-    def __init__(self):
+    generateSummary = pyqtSignal(dict)
+
+    def __init__(self,parent):
         super().__init__()
         # self.parent = parent
         loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\AnalysisWin.ui', self)
+        self.p = parent
+        self.init_layout()
+        self.init_interactivity()
+
+        self.processing = ''
+
+        self.group_list = []
+        self.var_list = []
+
+        self.checkBox_current.setChecked(True)
+        self.groupBox_load.setChecked(False)
+        self.file_list = [loader.getPath() for loader in list(self.p.dataLoader.values())]
+
+        self.save_path = ''
+        self.save_processing = False
+
+        
+    
+    
+    def init_layout(self):
+
+        self.label_savePath.setWordWrap(True)
+
+        self.comboGr = comboBoxCheckable('Group')
+        self.comboVar = comboBoxCheckable('Variable')
+        loader = self.p.get_currentLoader()
+        group_names = loader.getListGroup()
+        var_names = loader.getListVariable()
+
+        self.comboGr.setData(group_names)
+        self.comboVar.setData(var_names)
+
+        self.layout_GrVarCh.addWidget(self.comboGr)
+        self.layout_GrVarCh.addWidget(self.comboVar)
+
+        self.comboExpandable_processing = ComboBoxExpandable()
+        self.comboExpandable_processing.setData(PROCESSING_NAME)
+        self.layout_comboBoxExpandable_processing.addWidget(self.comboExpandable_processing)
+
+        menuJson = create_menuJson(PATH_PIPELINE)
+        self.comboExpandable_processing.append_element(['None'],self.comboExpandable_processing.menu())
+        self.comboExpandable_processing.append_element(menuJson,self.comboExpandable_processing.menu())
+
+        self.comboExpandable_processing.pathChanged.connect(self.oc_comboBoxExp)
+    
+
+    def init_interactivity(self):
+        self.checkBox_current.stateChanged.connect(self.oc_checkBoxCurrent)
+        self.groupBox_load.clicked.connect(self.oc_groupBoxLoad)
+        self.button_generate.clicked.connect(self.oc_buttonGenerate)
+        self.button_select.clicked.connect(self.oc_buttonSelect)
+        self.button_selectSavePath.clicked.connect(self.oc_buttonSelectSavePath)
+
+    def oc_comboBoxExp(self,path):
+        self.processing = path
+
+    def oc_checkBoxCurrent(self,state):
+        if state :
+            self.groupBox_load.setChecked(False)
+            self.file_list = [loader.getPath() for loader in list(self.p.dataLoader.values())]
+        else:
+            self.file_list = []
+
+    def oc_groupBoxLoad(self,state):
+        if state:
+            self.file_list = []
+            self.checkBox_current.setChecked(False)
+
+        else:
+            self.listWidget_path.clear()
+            self.file_list = []
+
+    def oc_cuttonClear(self):
+        self.listWidget_path.clear()
+
+    def oc_buttonSelect(self):
+        file_list = QFileDialog.getOpenFileNames(self, 'Open File',)[0]
+                                       #"/home/jana/untitled.png",
+                                    #    "Json (*.json)")
+        for file in file_list:
+            if file not in self.file_list:
+                self.file_list.append(file)
+                self.listWidget_path.addItem(file)
+                                
+
+        
+    def oc_buttonSelectSavePath(self):
+        self.save_path = QFileDialog.getExistingDirectory(self, "Select Directory")
+        self.label_savePath.setText(self.save_path)
+
+
+    def oc_buttonGenerate(self):
+        if self.save_path == '':
+            dlg = QtWidgets.QMessageBox.warning(self, '!','No path for saving')
+
+        dict_generation = {
+
+            'processing': self.processing,
+            'group list': self.group_list,
+            'variable list':self.var_list,
+            'file list':self.file_list,
+            'path save':self.save_path,
+            'save processing':self.checkBox_saveProcessing.isChecked(),
+        }
+        print('SUMMARY GENERATION', dict_generation)
+
+
+
+    
 
 class Canvas(FigureCanvasQTAgg):
     def __init__(self):
@@ -881,7 +992,7 @@ class EMGExplorer(QMainWindow):
 
     def oc_newSummary(self):
         if self.w is None:
-            self.w = SummaryWindow()
+            self.w = SummaryWindow(self)
         self.w.show()
         
 
@@ -1157,7 +1268,6 @@ class EMGExplorer(QMainWindow):
 
 
 def main():
-    print(PROCESSING)
     app = QApplication(sys.argv)
     ex = EMGExplorer()
     ex.raise_()

@@ -30,9 +30,82 @@ def menu_from_dict(dict_):
         
 
 
+class comboBoxCheckable(QtWidgets.QPushButton):
+
+    currentTextChanged = QtCore.pyqtSignal(list)
+
+    def __init__(self,name=' '):
+        super().__init__()
+        self.init_menu(name)
+
+    def init_menu(self,name):
+        self.setText(name)
+
+    def setData(self,data):
+        self.menu = QtWidgets.QMenu(self)
+        self.all = QtWidgets.QAction('All',self.menu )
+        self.all.setCheckable(True)
+        self.none = QtWidgets.QAction('None',self.menu )
+        self.none.setCheckable(True)
+        self.menu.addAction(self.all)
+        self.menu.addAction(self.none)
 
 
+        for element in data:
+            action = QtWidgets.QAction(element,self.menu)
+            action.setCheckable(True)
+            self.menu.addAction(action)
+        
+        self.menu.triggered.connect(self.on_triggered)
+        self.setMenu(self.menu)
 
+    @QtCore.pyqtSlot(QtWidgets.QAction)
+    def on_triggered(self, action):
+        text = action.text()
+        if text == 'All':
+            self.on_checked_all(action)
+        elif text == 'None':
+            self.on_checked_none(action)
+        else:
+            self.all.setChecked(False)
+            self.none.setChecked(False)
+
+
+        self.currentTextChanged.emit(self.list_checked())
+        print(self.list_checked())
+
+    def list_checked(self):
+        list_checked = [action.text() for action in self.menu.actions() if (action.isChecked()) and (action.text()!='All') and (action.text()!='None') ]
+        return list_checked
+    
+    def on_checked_all(self,action):
+        self.menu.blockSignals(True)
+
+        if action.isChecked():
+            for action in self.menu.actions():
+                action.setChecked(True)
+            self.none.setChecked(False)
+        else:
+            for action in self.menu.actions():
+                action.setChecked(False)
+
+        self.menu.blockSignals(False)
+
+
+    def on_checked_none(self,action):
+        self.menu.blockSignals(True)
+
+        for action in self.menu.actions():
+            if action.text() != 'None':
+                action.setChecked(False)
+
+        self.menu.blockSignals(False)
+
+
+        
+
+
+# retrouver la référence internet
 class ComboBoxExpandable(QtWidgets.QPushButton):
     """Exandable comboBox
 
@@ -50,6 +123,16 @@ class ComboBoxExpandable(QtWidgets.QPushButton):
         self.setMenu(menu)
         self.append_element(value, menu)
         menu.triggered.connect(self.on_triggered)
+
+    def append_element(value, menu):
+        if isinstance(value, list):
+            for e in value:
+                ComboBoxExpandable.append_element(e, menu)
+        elif isinstance(value, dict):
+            for k, v in value.items():
+                ComboBoxExpandable.append_element(v, menu.addMenu(k))
+        else:
+            menu.addAction(value)
 
     @QtCore.pyqtSlot(QtWidgets.QAction)
     def on_triggered(self, action):
