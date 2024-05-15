@@ -1,8 +1,5 @@
 from .setup import *
 
-
-
-
 ### BASE CLASS ###
 
 class MyDataLoader(ABC):
@@ -173,11 +170,27 @@ class MyDataLoaderNC(MyDataLoader):
         self.dict_group = walkDatatree_getPathDataset(self.data,{})
         print('dict group after load',self.dict_group)
 
+    # ATTRIBUTS
+    def loadAttributs(self):
+        self.attrs = walkDatatree_getAttrDataset(self.data)
+    
+    def saveAttributs(self,attrs):
+        """_summary_
+
+        Args:
+            attrs (dict): _description_
+        """
+        pass
+
     def getPath(self):
         return self.path
         
     def getGroup(self):
         return self.dict_group
+    
+    def getName(self):
+        return self.name
+
     
     def getListGroup(self):
         return list(self.dict_group.keys())
@@ -212,6 +225,7 @@ class MyDataLoaderNC(MyDataLoader):
             return list_ch
 
 
+
     def getData(self,group,var,dim,channel):
         """Returns the selected data
 
@@ -221,7 +235,7 @@ class MyDataLoaderNC(MyDataLoader):
             channel (str): _description_
 
         Returns:
-            np.array: 
+            xarray: 
         """
        
         try : channel = int(channel) #could be fix with item instead of text ?
@@ -240,23 +254,11 @@ class MyDataLoaderNC(MyDataLoader):
         Returns:
             np.array: 
         """
-        # # return self.data[group][var] 
-
-        # data = self.data[group][var] 
-        # for t in ['Time','time']:
-        #     if t in data.dims:
-        #         x = np.array(data[t])
-                
-        #     else:
-        #         x = np.arange()
-
-        # x = data['time'].values
-        # y = data.values
         return self.data[group][var] 
     
     def get_DataFromDict(self,dictData):
         # ex from {'/': {'Trigger': [], 'Accelerations': ['Y'], 'HDsEMG': ['8', '9']}}
-        """return a list of xarray
+        """return a list of xarray per variable
 
         Args:
             dictData (_type_): _description_
@@ -278,20 +280,14 @@ class MyDataLoaderNC(MyDataLoader):
         return data_list
 
 
-    def setData(self,group,var,channel,data):
+    def setData(self,group,var,dim,channel,data):
         pass
         
 
     def saveData(self):
         pass
 
-    # ATTRIBUTS
-    def loadAttributs(self):
-        self.attrs = walkDatatree_getAttrDataset(self.data)
-        print('atrs load',self.attrs)
     
-    def saveAttributs(self):
-        pass
     
 
 def getDataDatatree(data,group,var,dim,channel):
@@ -311,6 +307,14 @@ def getDataDatatree(data,group,var,dim,channel):
     return data[group][var].loc[{dim:channel}] 
 
 def get_dim(list_dim:list):
+    """return the first dimention that is not time 
+
+    Args:
+        list_dim (list): _description_
+
+    Returns:
+        _type_: _description_
+    """
     for t in ['Time','time']:
         if t in list_dim:
             list_dim.remove(t)

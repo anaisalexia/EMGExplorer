@@ -5,17 +5,6 @@ from PyQt5.QtCore import Qt
 import os
 
 
-def Try_decorator(function):
-    print('in deco')
-    def wrapper(*arg):
-        try:
-            function(*arg)
-        except Exception as e:
-            print(function.__name__)
-            print(e)
-
-    return wrapper
-
 class OneSetting(pTypes.GroupParameter):
     delete_trigger = pyqtSignal('PyQt_PyObject')
     position_trigger = pyqtSignal('PyQt_PyObject','PyQt_PyObject')
@@ -223,16 +212,6 @@ class Filters():
         return dictjson
 
 
-def deleteItemsOfLayout(layout):
-     if layout is not None:
-         while layout.count():
-             item = layout.takeAt(0)
-             widget = item.widget()
-             if widget is not None:
-                 widget.setParent(None)
-             else:
-                 deleteItemsOfLayout(item.layout())
-
 
 class Layout_Parameters_Type(QWidget):
     signal_IndependantDataChecked = pyqtSignal(bool)
@@ -420,41 +399,11 @@ class OneGraph():
 
 
 
-def walkDatatree_setAttrDataset(info,node):
-
-    if type(list(info.values())[0]) == dict:
-        for name,child_dict in info.items():
-            child_node = QTreeWidgetItem(node)
-            child_node.setText(0, str(name))
-            walkDatatree_setAttrDataset(child_dict,child_node)
-                
-    else: 
-        for k,v in info.items():
-            child_node = QTreeWidgetItem(node)            
-            child_node.setText(0,str(k))
-            child_node.setText(1,str(v))
-        return info
-        
-    
-    return info
-                    
-
 
 class Layout(QWidget):
     def __init__(self,nb,nb_v=1):
         super().__init__()
         loadUi(f'hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\Layout{nb}_{nb_v}.ui', self)
-
-
-# class NewFilterWindow(QWidget):
-
-#     # automatic name after preprocessing function + nb of the step
-#     # param : add, delete, change position
-
-#     def __init__(self):
-#         super().__init__()
-#         # self.parent = parent
-#         loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\GraphParameters.ui', self)
 
 
 
@@ -551,134 +500,6 @@ class WindowChannelSelection(QWidget):
     def oc_select(self):
         dictData= self.get_selectedItems()
         self.sendData.emit(dictData)
-
-
-
-    # @Try_decorator
-    # def init_menu(self):
-    #     self.toolbutton = QtWidgets.QToolButton(self)
-    #     self.toolbutton.setText('Group')
-    #     self.toolmenu = QtWidgets.QMenu(self)
-
-    #     file_name = self.p.listWidget_file.currentItem().text()
-    #     actionSelectAll = self.toolmenu.addAction('Select all')
-    #     actionSelectAll.setCheckable(True)
-    #     actionSelectAll.triggered.connect(self.oc_selectAllGroup)
-    #     actionDeselectAll = self.toolmenu.addAction('Deselect all')
-    #     actionDeselectAll.setCheckable(True)
-    #     actionDeselectAll.triggered.connect(self.oc_deselectAllGroup)
-
-    #     #add to layout
-    #     self.lcomboBox_group.addWidget(self.toolbutton)
-    #     print('dict group selection',self.p.dataLoader[file_name].dict_group)
-    #     for group in self.p.dataLoader[file_name].dict_group.keys():
-    #         print('groupe selection init',group)
-    #         action = self.toolmenu.addAction(group)
-    #         action.setCheckable(True)
-    #         action.triggered.connect(partial(self.oc_groupChecked,group))
-    #     self.toolbutton.setMenu(self.toolmenu)
-    #     self.toolbutton.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-
-    # def init_menuVar(self):
-    #     self.toolbuttonVar = QtWidgets.QToolButton(self)
-    #     self.toolbuttonVar.setText('Variable')
-    #     self.toolmenuVar = QtWidgets.QMenu(self)
-
-    #     # interactivity
-    #     actionSelectAll = self.toolmenuVar.addAction('Select all')
-    #     actionSelectAll.setCheckable(True)
-    #     actionSelectAll.triggered.connect(self.oc_selectAllVar)
-    #     actionDeselectAll = self.toolmenuVar.addAction('Deselect all')
-    #     actionDeselectAll.setCheckable(True)
-    #     actionDeselectAll.triggered.connect(self.oc_deselectAllVar)
-
-    #     # add to layout
-    #     self.lcomboBox_var.addWidget(self.toolbuttonVar)
-    #     self.toolbuttonVar.setMenu(self.toolmenuVar)
-    #     self.toolbuttonVar.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-
-    # def update_variable(self,group,type):
-
-    #     file_name = self.p.listWidget_file.currentItem().text()
-    #     dict_group = self.p.dataLoader[file_name].dict_group
-
-    #     if type == 'add':
-    #         # add variable
-    #         for var in list(dict_group[group].keys()):
-    #             action = self.toolmenuVar.addAction(f'{var}/{group}')
-    #             action.setCheckable(True)
-    #             action.triggered.connect(partial(self.oc_varChecked,group,var))
-    #     else:
-    #         # delete variables
-    #         for a in self.toolmenuVar.actions():
-    #             if a.text().split('/')[-1] == group:
-    #                 self.toolmenuVar.removeAction(a)
-
-    # def update_channel(self,group,var,type):
-
-    #     file_name = self.p.listWidget_file.currentItem().text()
-    #     dict_group = self.p.dataLoader[file_name].dict_group
-    #     channels = list(dict_group[group][var].keys())
-
-    #     if len(channels)!=0:
-    #         channels =  dict_group[group][var][channels[0]]
-
-    #         if type == 'add':
-    #             for ch in channels:
-    #                 item = QListWidgetItem(f'{ch}/var/group')
-    #                 self.listWidget.addItem(item)
-    #                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-    #                 item.setCheckState(Qt.Unchecked)
-    #                 # item.itemChanged.connect(self.oc_itemChanged)
-
-    # def oc_oc_itemChanged(self,item):
-    #     if item.isChecked():
-    #         pass#::::::::::
-    #     else:
-    #         pass
-    #     #:::::::::::::::::::
-
-    # def oc_groupChecked(self,group,checked):
-    #     if checked:
-    #         self.dictSelection[group] = {}
-    #         self.update_variable(group,'add')
-    #     else:
-    #         try:
-    #             self.dictSelection.pop(group)
-    #             self.update_variable(group,'del')
-    #         except:
-    #             print('no group in dict selection')
-
-
-    # def oc_varChecked(self,group,var,checked):
-    #     if checked:
-    #         self.dictSelection[group][var] = []
-    #         self.update_channel(group,var,'add')
-
-    #     else:
-    #         try:
-    #             self.dictSelection[group].pop(var)
-    #             self.update_channel(group,var,'del')
-
-    #         except:
-    #             print('no var in group in dict Selection')
-
-
-    # def oc_selectAllGroup(self):
-    #     for a in self.toolmenu.actions():
-    #         a.setChecked(True)
-
-    # def oc_deselectAllGroup(self):
-    #     for a in self.toolmenu.actions():
-    #         a.setChecked(False)
-
-    # def oc_selectAllVar(self):
-    #     for a in self.toolmenuVar.actions():
-    #         a.setChecked(True)
-
-    # def oc_deselectAllVar(self):
-    #     for a in self.toolmenuVar.actions():
-    #         a.setChecked(False)
 
 
 
@@ -1500,77 +1321,3 @@ if __name__ == '__main__':
     main()
 
 
-
-
-
-
-
-# all in one file
-# print(dir(exp.processing_function))
-
-# import processing function
-# print(os.listdir('EMG_Explorer_App/Explorer_package/processing'))
-#['processing1.py', 'processing2.py', '__pycache__']
-
-
-# from importlib.machinery import SourceFileLoader
- 
-# mod_list = []
-# for name in os.listdir('EMG_Explorer_App/Explorer_package/processing'):
-#     if name != '__pycache__':
-#         mod_list += [name[:-3]]
-
-# # imports the module from the given path
-# PROCESSING = {}
-# for name in mod_list:
-#     mod = SourceFileLoader(name,f"EMG_Explorer_App/Explorer_package/processing/{name}.py").load_module()
-#     PROCESSING[name] = {}
-
-#     for fc_name in dir(mod):
-#         fc = getattr(mod,fc_name)
-#         if fc_name[0] != '_':
-#             PROCESSING[name][fc_name] = fc
-
-# # print(PROCESSING)
-            
-# PROCESSING['processing1']['add']()
-
-
-
-# self.graph = pg.GraphicsLayoutWidget(border=pg.mkPen((0, 0, 0)))
-# self.timeplot = self.graph.addPlot(row=0, col=0, rowspan=1, colspan=1)
-# self.fftplot = self.graph.addPlot(row=1, col=0, rowspan=1, colspan=1)
-
-# self.timeplot.plot(x=self.time, y=self.signal, pen=pen)
-# self.timeplot.setMouseEnabled(x=True, y=False)
-# self.timeplot.setLimits(xMin=0, xMax=self.time.max())
-# self.timeplot.autoRange()
-# self.timeplot.showGrid(x=True)
-# self.timeplot.setMenuEnabled(False)
-# self.timeplot.setLabel('left', "Channel {} - EMG".format(elec_id), "")
-# self.timeplot.setLabel('bottom', "time", "s")
-# self.timeplot.sigXRangeChanged.connect(self.update_fft)
-# self.timepoint = pg.InfiniteLine(0,pen=pg.mkPen({'color': "#FF0", 'width': 4}))  # pg.CurvePoint(self.timeplot.curves[0])
-# self.timeplot.addItem(self.timepoint)
-# # arrow = pg.ArrowItem(angle=-90)
-# # arrow.setParentItem(self.timepoint)
-
-# self.fftplot.plot(self.time, self.signal, pen=pen)
-# self.fftplot.setMouseEnabled(x=True, y=False)
-# self.fftplot.showGrid(x=True)
-# self.fftplot.setMenuEnabled(False)
-# self.fftplot.setLabel('left', "Channel {} - Power".format(elec_id), "")
-# self.fftplot.setLabel('bottom', "frequency", "Hz")
-# self.fftplot.curves[0].setFftMode(True)
-# self.fftplot.enableAutoRange(True)
-
-# self.rvbox.addWidget(self.graph)
-# self.ploted = True
-
-
-# fct = 'rms'
-#         gridvar = numpy.apply_along_axis(eval("self.{}".format(fct)), 2, gridvar) #fonctionne sans le self et rms une fonction normal ?
-
-# @staticmethod
-#     def rms(x):
-#         return numpy.sqrt(x.dot(x) / x.size)
