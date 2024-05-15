@@ -8,3 +8,4 @@ hdemg_viewer_exemple/
 data/
 
 # except
+EMG_Explorer_App/Explorer_package/___pycache__/
