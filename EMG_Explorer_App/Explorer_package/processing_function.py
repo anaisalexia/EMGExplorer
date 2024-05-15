@@ -1,6 +1,7 @@
 from importlib.machinery import SourceFileLoader
 import os
 from .setup import *
+from .mainwindow_utils import get_item_from_path
 
 ROOT = 'EMG_Explorer_App\Explorer_package\processing'
 ROOT_MEASUREMENT = 'EMG_Explorer_App\Explorer_package\summary_measurement'
@@ -78,18 +79,7 @@ def menu_from_dict(dict_):
         
     return menu
 
-def get_item_from_path(dict_dict,path):
-    """get the item of embedded dictionnaries from a path made of keys
 
-    Args:
-        dict_dict (_type_): _description_
-        path (_type_): _description_
-    """
-    item = dict_dict[path[0]]
-    for key in path[1:]:
-        item = item[key]
-        
-    return item
 
 
 

@@ -1,3 +1,4 @@
+from .setup import *
 
 def Try_decorator(function):
     print('in deco')
@@ -40,3 +41,15 @@ def walkDatatree_setAttrDataset(info,node):
     
     return info
                     
+def get_item_from_path(dict_dict,path):
+    """get the item of embedded dictionnaries from a path made of keys
+
+    Args:
+        dict_dict (_type_): _description_
+        path (_type_): _description_
+    """
+    item = dict_dict[path[0]]
+    for key in path[1:]:
+        item = item[key]
+        
+    return item
