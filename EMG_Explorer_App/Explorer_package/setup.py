@@ -38,6 +38,10 @@ from datatree import DataTree
 import datatree
 from abc import ABC, abstractmethod
 
+from jinja2 import Template
 
 # CONSTANT
 PATH_PIPELINE = 'EMG_Explorer_App/Explorer_package/processing pipelines/'
+
+
+

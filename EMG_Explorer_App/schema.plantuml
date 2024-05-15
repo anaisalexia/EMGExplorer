@@ -146,5 +146,31 @@ PlotGeneral <|--PlotLine
 PlotLine::l *-- LayoutSettingline
 PlotFFT::l *-- LayoutSettingfft
 
+rectangle FilterCreationBox<<Rectangle>>{
 
+Class Filters{
+
+    - listFilters {dict}
+    - nb
+    - tree  {pg ParameterTree}
+    - Parameters { pg Parameter}
+    - add_parameter
+
+    - CreateTree()
+    - addNew() {add a setting to the tree Parameter}
+    - addFilter() {add the function to the dictionnary}
+    
+}
+
+class OneSetting{
+
+    - layout
+    - dict_setting
+    - create_layout_from_function() {definition of the layout + interactivity}
+    - create_dict_setting_from_function()
+
+}
+
+FilterCreation o- OneFilter
+}
 @enduml

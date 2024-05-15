@@ -228,7 +228,8 @@ class MyDataLoaderNC(MyDataLoader):
         except: pass
         return self.data[group][var].loc[{dim:channel}] 
     
-    def getDataVariable(self,group,var,dim):
+
+    def getDataVariable(self,group,var,dim=None):
         """Returns the selected data
 
         Args:
@@ -292,6 +293,52 @@ class MyDataLoaderNC(MyDataLoader):
     def saveAttributs(self):
         pass
     
+
+def getDataDatatree(data,group,var,dim,channel):
+    """Returns the selected data
+
+    Args:
+        group (str): _description_
+        var (str): _description_
+        channel (str): _description_
+
+    Returns:
+        np.array: 
+    """
+    
+    try : channel = int(channel) #could be fix with item instead of text ?
+    except: pass
+    return data[group][var].loc[{dim:channel}] 
+
+def get_dim(list_dim:list):
+    for t in ['Time','time']:
+        if t in list_dim:
+            list_dim.remove(t)
+    if len(list_dim) != 0:
+        return list_dim[0]
+    else:
+        return None
+    
+def xarray_to_dataframe(xarray):
+    df = pd.DataFrame(None,columns=['Group','Var','Dim','Value'])
+    rows = []
+
+    for gr in xarray.groups:
+        d = xarray[gr]
+        if d.is_leaf:
+            for var in list(d.data_vars):
+                dim = get_dim(list(d[var].dims))
+                if dim != None:
+                    for ch in d[var][dim].values:
+                        value = getDataDatatree(xarray,gr,var,dim,ch).values
+                        row = dict(zip(['Group','Var','Dim','Value'],
+                                    [gr,var,ch,value]))
+                        rows.append(row)
+
+
+        # Concatenate the list of rows into the DataFrame
+    df = pd.concat([df, pd.DataFrame(rows)])
+    return df
 
 DATALOADER = {
     '.nc' : MyDataLoaderNC

@@ -245,64 +245,64 @@ from PyQt5 import QtGui
 from PyQt5.Qt import Qt
 import sys
 
-def get_selectedItems(tree):
+# def get_selectedItems(tree):
 
-        def has_childLeaf(item):
-            nb_children = item.childCount()
-            for i in range(nb_children):
-                child = item.child(i)
-                nb_chil_children = child.childCount()
-                if nb_chil_children > 0:
-                    return False
-            return True
+#         def has_childLeaf(item):
+#             nb_children = item.childCount()
+#             for i in range(nb_children):
+#                 child = item.child(i)
+#                 nb_chil_children = child.childCount()
+#                 if nb_chil_children > 0:
+#                     return False
+#             return True
                     
             
-        def recurse(item):
-                list_dict = {}
-                if has_childLeaf(item):
-                    list_checked = []
-                    for j in range(item.childCount()):
-                         if  item.child(j).checkState(0) == Qt.Checked :
-                            list_checked.append(item.child(j).text(0))
-                    return list_checked 
+#         def recurse(item):
+#                 list_dict = {}
+#                 if has_childLeaf(item):
+#                     list_checked = []
+#                     for j in range(item.childCount()):
+#                          if  item.child(j).checkState(0) == Qt.Checked :
+#                             list_checked.append(item.child(j).text(0))
+#                     return list_checked 
                     
-                else:
-                    for i in range (item.childCount()):
-                        list_dict[item.child(i).text(0)] = recurse(item.child(i))
-                return list_dict
+#                 else:
+#                     for i in range (item.childCount()):
+#                         list_dict[item.child(i).text(0)] = recurse(item.child(i))
+#                 return list_dict
         
-        return recurse(tree.invisibleRootItem())
+#         return recurse(tree.invisibleRootItem())
 
 
 
-def main(): 
-    app     = QtWidgets.QApplication(sys.argv)
-    tree    = QtWidgets.QTreeWidget()
-    headerItem  = QtWidgets.QTreeWidgetItem()
-    item    = QtWidgets.QTreeWidgetItem()
+# def main(): 
+#     app     = QtWidgets.QApplication(sys.argv)
+#     tree    = QtWidgets.QTreeWidget()
+#     headerItem  = QtWidgets.QTreeWidgetItem()
+#     item    = QtWidgets.QTreeWidgetItem()
 
-    for i in range(3):
-        parent = QtWidgets.QTreeWidgetItem(tree)
-        parent.setText(0, "Parent {}".format(i))
-        parent.setFlags(parent.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
-        for x in range(5):
-            child = QtWidgets.QTreeWidgetItem(parent)
-            child.setFlags(child.flags() | Qt.ItemIsUserCheckable)
-            child.setText(0, "Child {}".format(x))
-            child.setCheckState(0, Qt.Checked)
-            for y in range(5):
-                child2 = QtWidgets.QTreeWidgetItem(child)
-                child2.setFlags(child2.flags() | Qt.ItemIsUserCheckable)
-                child2.setText(0, "Child2 {}".format(y))
-                child2.setCheckState(0, Qt.Checked)
-    tree.show() 
+#     for i in range(3):
+#         parent = QtWidgets.QTreeWidgetItem(tree)
+#         parent.setText(0, "Parent {}".format(i))
+#         parent.setFlags(parent.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
+#         for x in range(5):
+#             child = QtWidgets.QTreeWidgetItem(parent)
+#             child.setFlags(child.flags() | Qt.ItemIsUserCheckable)
+#             child.setText(0, "Child {}".format(x))
+#             child.setCheckState(0, Qt.Checked)
+#             for y in range(5):
+#                 child2 = QtWidgets.QTreeWidgetItem(child)
+#                 child2.setFlags(child2.flags() | Qt.ItemIsUserCheckable)
+#                 child2.setText(0, "Child2 {}".format(y))
+#                 child2.setCheckState(0, Qt.Checked)
+#     tree.show() 
 
     
-    print(get_selectedItems(tree))
-    sys.exit(app.exec_())
+#     print(get_selectedItems(tree))
+#     sys.exit(app.exec_())
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
 
 # import json
  
@@ -319,3 +319,45 @@ if __name__ == '__main__':
 #     arg[list(arg.keys())[0]] = x
 #     x = func(arg)
 
+# from custom_widget import comboBoxCheckable
+# app     = QtWidgets.QApplication(sys.argv)
+
+# list_ = ['b','rt','gh']
+# combo = comboBoxCheckable()
+# # combo.currentTextChanged.connect(lambda x: print(f'hi {x}'))
+# combo.setData(list_)
+# combo.show()
+# sys.exit(app.exec_())
+
+
+
+
+import plotly.express as px
+from jinja2 import Template
+
+# data_canada = px.data.gapminder().query("country == 'Canada'")
+# fig = px.bar(data_canada, x='year', y='pop')
+
+# output_html_path=r"EMG_Explorer_App/Template/test1/template1_filled.html"
+# input_template_path = r"EMG_Explorer_App/Template/test1/template1.html"
+
+# plotly_jinja_data = fig.to_html(full_html=False)
+# #consider also defining the include_plotlyjs parameter to point to an external Plotly.js as described above
+
+# arg = "<p> Other paragraph.</p> "
+# data = {"fig":plotly_jinja_data,"arg":arg}
+
+# with open(output_html_path, "w", encoding="utf-8") as output_file:
+#     with open(input_template_path) as template_file:
+#         j2_template = Template(template_file.read())
+#         output_file.write(j2_template.render(data))
+
+import pandas as pd
+
+def array_to_df(array):
+    return pd.DataFrame(array,columns=['y'],index=np.arange(len(array)))
+
+array = np.random.randint(1,10,(10,1))
+fig = px.box(array_to_df(array),y='y')
+
+fig.show()

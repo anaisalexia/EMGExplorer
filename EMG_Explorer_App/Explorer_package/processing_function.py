@@ -3,7 +3,8 @@ import os
 from .setup import *
 
 ROOT = 'EMG_Explorer_App\Explorer_package\processing'
-
+ROOT_MEASUREMENT = 'EMG_Explorer_App\Explorer_package\summary_measurement'
+ROOT_DISPLAY = 'EMG_Explorer_App\Explorer_package\summary_display'
 
 def apply_jsonFilter(x,pathFile):
     f = open(f'{PATH_PIPELINE}{pathFile}.json')
@@ -19,7 +20,7 @@ def apply_jsonFilter(x,pathFile):
 
     return x  
 
-def generate_processing_dict():
+def generate_processing_dict(ROOT):
     """Generate the constant dictionnary PROCESSING. This dictionnary comprises all the function
     of the files that are in the "processing" folder.
     The function first saves the names of each processing file and the names the external module such as scipy,numpy... so that thez are not
@@ -90,6 +91,12 @@ def get_item_from_path(dict_dict,path):
         
     return item
 
-PROCESSING = generate_processing_dict()
 
+
+PROCESSING = generate_processing_dict(ROOT)
 PROCESSING_NAME = menu_from_dict(PROCESSING)
+
+MEASUREMENT = generate_processing_dict(ROOT_MEASUREMENT)
+DISPLAY = generate_processing_dict(ROOT_DISPLAY)
+MEASUREMENT_NAME = menu_from_dict(MEASUREMENT)
+DISPLAY_NAME = menu_from_dict(DISPLAY)
