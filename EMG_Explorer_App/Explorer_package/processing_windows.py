@@ -54,7 +54,6 @@ class OneSetting(pTypes.GroupParameter):
     def oc_position_handler(self,param,val):
         self.position_trigger.emit(self.position,val)
 
-
     def aChanged(self):
         print(' a ')
     

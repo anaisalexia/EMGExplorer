@@ -27,8 +27,9 @@ from matplotlib.figure import Figure
 from PyQt5.uic import loadUi
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg,NavigationToolbar2QT as NavigationToolbar
 from PyQt5.QtWidgets import QToolButton
+from pyqtgraph.parametertree import Parameter, ParameterTree, parameterTypes, registerParameterItemType,registerParameterType
 
-from qtpy import QtGui, QtCore
+from qtpy import QtGui, QtCore,QtWidgets
 from qtpy.QtWidgets import *
 
 from functools import partial
