@@ -166,6 +166,8 @@ class GroupParametersGlobalProcessing(QWidget):
 
 class GlobalProcessingTab(QWidget):
 
+    processingSaved = pyqtSignal(str)
+
     def __init__(self,parent):
         super().__init__()
         
@@ -219,6 +221,7 @@ class GlobalProcessingTab(QWidget):
         else:
             with open(f'{namepath[0]}.json', 'w') as f:
                 json.dump(dictjson, f)
+            self.processingSaved.emit(namepath[0])
 
     def oc_clear(self):
         self.globalProcessingTree.clear()
@@ -248,7 +251,6 @@ class GlobalProcessingTab(QWidget):
 
 
 class EMGExplorer(QMainWindow):
-
 
     def __init__(self):
         super().__init__()
@@ -292,14 +294,9 @@ class EMGExplorer(QMainWindow):
 
         self.update_list_layout_graph()
         # self.initialize_layout_graph()
-        
-   
-      
-
         # SETTINGS INIT
         # self.setting = {0:OneSetting(None,'Custom parameter')}
         
-
         self.paramtree = Filters(None)
         self.layout_setting.addWidget(self.paramtree.tree)
         self.button_openJson.clicked.connect(self.oc_openFilter)
@@ -314,11 +311,53 @@ class EMGExplorer(QMainWindow):
 
         self.widget_globalProcessing = GlobalProcessingTab(self)
         self.layout_globaProcessing.addWidget(self.widget_globalProcessing)
-
+        self.widget_globalProcessing.processingSaved.connect(self.update_comboBoxGlobalProcessing)
+        
+        self.init_comboBoxGlobalProcessing()
         print('iiiiiiniiit')
         self.interactivity_fileSystem()
 
         self.show()
+
+
+
+    def init_comboBoxGlobalProcessing(self):
+        print('ComboBox GlobalProcessing init')
+        self.comboBoxGlobalProcessing = ComboBoxExpandable()
+        self.update_comboBoxGlobalProcessing()
+        self.lcomboBox_globalProcessing.addWidget(self.comboBoxGlobalProcessing)
+        self.comboBoxGlobalProcessing.pathChanged.connect(self.update_pathGlobalProcessing)
+    
+    def update_comboBoxGlobalProcessing(self):
+        lastSelection = self.comboBoxGlobalProcessing.text()
+        if lastSelection:
+            print(lastSelection)
+            self.comboBoxGlobalProcessing.setText(lastSelection)
+
+        print('ComboBox GlobalProcessing update')
+        menuJson = dictOfFiles_from_EmbeddedFolders(ROOT_GLOBALPROCESSING)
+        self.comboBoxGlobalProcessing.setData(menuJson)
+        self.comboBoxGlobalProcessing.append_element(['None'],self.comboBoxGlobalProcessing.menu())
+
+    def update_pathGlobalProcessing(self,listpath:list):
+        self.path_globalProcessing = listpath
+
+    def get_currentGlobalProcessingDict(self):
+        if self.path_globalProcessing != 'None':
+            listpath = list(filter(lambda a: a != 'general', self.path_globalProcessing))
+            f = open(f'{ROOT_GLOBALPROCESSING}/{"/".join(listpath)}')
+            print('get global processing dict', f)
+            data = json.load(f)
+            return data
+        else:
+            return {}
+
+    def apply_globalProcessing(self,loader,path):
+        globalProcessingdict = self.get_currentGlobalProcessingDict()
+        if globalProcessingdict != {}:
+            data = apply_jsonFilter(data,pathFile=None,dictFile=globalProcessingdict)
+
+
 
     def oc_openFilter(self):
         # get path
