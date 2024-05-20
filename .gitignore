@@ -7,5 +7,7 @@ hdemg_viewer_exemple/
 # ignore the data
 data/
 
+EMG_Explorer_App/note.txt
+
 # except
 EMG_Explorer_App/Explorer_package/___pycache__/
