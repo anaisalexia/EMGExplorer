@@ -354,10 +354,134 @@ from jinja2 import Template
 
 import pandas as pd
 
-def array_to_df(array):
-    return pd.DataFrame(array,columns=['y'],index=np.arange(len(array)))
+# def array_to_df(array):
+#     return pd.DataFrame(array,columns=['y'],index=np.arange(len(array)))
 
-array = np.random.randint(1,10,(10,1))
-fig = px.box(array_to_df(array),y='y')
+# array = np.random.randint(1,10,(10,1))
+# fig = px.box(array_to_df(array),y='y')
 
-fig.show()
+# fig.show()
+
+
+import sys
+from PyQt5.QtWidgets import QApplication, QMenu, QPushButton, QVBoxLayout, QWidget
+import pyqtgraph as pg
+from pyqtgraph.parametertree import Parameter, ParameterTree, parameterTypes, registerParameterItemType,registerParameterType
+# from custom_widget import ComboBoxExpandable
+
+# class PopupMenuParameter2(parameterTypes.ActionParameter):
+#     def __init__(self, **opts):
+#         super().__init__(**opts)
+#         self.button = ComboBoxExpandable()
+#         self.sigActivated.connect(self.showMenuPopup)
+
+#     def showMenuPopup(self):
+#         self.button.menu.popup(QtGui.QCursor.pos())
+
+# # # Custom parameter class
+# # class PopupMenuParameter(parameterTypes.ActionParameter):
+# #     def __init__(self, **opts):
+# #         super().__init__(**opts)
+# #         self.button = QtWidgets.QToolButton()
+# #         self.menu = QMenu()
+# #         self.button.setMenu(self.menu)
+# #         self.button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+# #         print('menu created')
+        
+
+# #     def showMenu2(self):
+# #         self.menu.popup(QtGui.QCursor.pos())
+
+# #     def setData(self, value):
+# #         self.append_element(value, self.menu)
+# #         self.menu.triggered.connect(self.on_triggered)
+
+# #     @QtCore.pyqtSlot(QtWidgets.QAction)
+# #     def on_triggered(self, action):
+# #         self.setText(action.text())
+# #         path = [action.text()] 
+# #         w = action.parentWidget()
+# #         while w.parentWidget() and isinstance(w.parentWidget(), QtWidgets.QMenu):
+# #             path.insert(0, w.title())
+# #             w = w.parentWidget()
+# #         self.pathChanged.emit(path)
+# #         self.currentTextChanged.emit(self.text())
+
+# #     @staticmethod
+# #     def append_element(value, menu):
+# #         if isinstance(value, list):
+# #             for e in value:
+# #                 PopupMenuParameter.append_element(e, menu)
+# #         elif isinstance(value, dict):
+# #             for k, v in value.items():
+# #                 PopupMenuParameter.append_element(v, menu.addMenu(k))
+# #         else:
+# #             menu.addAction(value)
+
+# if __name__ == "__main__":
+#     app = QApplication([])
+
+#     registerParameterType('popupmenu', PopupMenuParameter2, override=True)
+
+#     # Create parameters
+#     params = [
+#         {'name': 'PopupMenuParameter', 'type': 'popupmenu', 'title': '+'},
+#     ]
+
+#     # Create parameter tree and set parameters
+#     param_tree = ParameterTree()
+#     parameter = Parameter.create(name='params', type='group', children=params)
+
+#     param_tree.setParameters(parameter)
+#     parameter.child('PopupMenuParameter').button.setData({"1":{"3":"4","5":"6"}})         
+    
+#     win = QWidget()
+#     layout = QVBoxLayout()
+#     layout.addWidget(param_tree)
+#     win.setLayout(layout)
+#     win.show()
+
+#     sys.exit(app.exec_())
+
+
+import os
+
+# print(os.listdir('EMG_Explorer_App\Explorer_package\global_processing_pipelines'))
+# print(os.path.isdir('EMG_Explorer_App\Explorer_package\global_processing_pipelines'))
+
+# ROOT = 'EMG_Explorer_App\Explorer_package\global_processing_pipelines'
+
+
+# def has_folder(ROOT):
+#     for path in os.listdir(ROOT):
+#         if os.path.isdir( ROOT + '\\' + path ):
+#             return True
+#     return False
+
+# def dictOfFiles_from_EmbeddedFolders(ROOT):
+#     list_process = []
+#     PROCESS = {}
+
+#     for path in os.listdir(ROOT):
+#         if os.path.isdir( ROOT + '\\' + path ):
+#             if has_folder(ROOT + '\\' + path ):
+#                 PROCESS[path] = dictOfFiles_from_EmbeddedFolders(ROOT + '\\' + path)
+#             else:
+#                 PROCESS[path] = os.listdir( ROOT + '\\' + path )
+#         else:
+#             list_process.append(path)
+
+#     if list_process != []:
+#         PROCESS['general'] = list_process
+
+
+#     return PROCESS
+    
+
+
+# pro = dictOfFiles_from_EmbeddedFolders(ROOT)
+# print(pro)
+
+list_t = ['general',1,3,'general']
+list_t =  list(filter(lambda a: a != 'general', list_t))
+print(list_t)

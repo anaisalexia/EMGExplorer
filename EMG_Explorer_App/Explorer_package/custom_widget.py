@@ -1,4 +1,5 @@
-from PyQt5 import QtCore, QtWidgets
+from .setup import *
+
 
 # data =[{
 #         "Courses": ["Math", "Science", "English"]
@@ -155,3 +156,41 @@ class ComboBoxExpandable(QtWidgets.QPushButton):
                 ComboBoxExpandable.append_element(v, menu.addMenu(k))
         else:
             menu.addAction(value)
+
+
+
+
+class PopupMenuParameter2(parameterTypes.ActionParameter):
+    pathChanged = pyqtSignal(list)
+
+    def __init__(self, **opts):
+        super().__init__(**opts)
+        self.button = ComboBoxExpandable()
+        self.sigActivated.connect(self.showMenuPopup)
+        self.button.pathChanged.connect(self.oc_pathChanged)
+
+    def showMenuPopup(self):
+        self.button.menu().popup(QtGui.QCursor.pos())
+    
+    def setData(self,data):
+        self.button.setData(data)
+
+    def oc_pathChanged(self,path):
+        self.pathChanged.emit(path)
+
+
+
+registerParameterType('popupmenu', PopupMenuParameter2, override=True)
+
+# # Create parameters
+# params = [
+#     {'name': 'PopupMenuParameter', 'type': 'popupmenu', 'title': '+'},
+# ]
+
+# # Create parameter tree and set parameters
+# param_tree = ParameterTree()
+# parameter = Parameter.create(name='params', type='group', children=params)
+
+# param_tree.setParameters(parameter)
+# parameter.child('PopupMenuParameter').button.setData({"1":{"3":"4","5":"6"}})         
+    

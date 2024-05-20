@@ -1,5 +1,15 @@
 from .setup import *
 
+
+def merge2datatree(datatree1:DataTree,datatree2:DataTree):
+    dict1 = datatree1.to_dict()
+    dict2 = datatree2.to_dict()
+    dict1group = list(dict1.keys())
+    for k,xar in dict2.items():
+        dict1[k] = xar
+    return DataTree.from_dict(dict1)
+
+
 ### BASE CLASS ###
 
 class MyDataLoader(ABC):
@@ -137,6 +147,7 @@ class MyDataLoaderNC(MyDataLoader):
 
     def __init__(self,path,name) -> None:
         self.data = {}
+        self.data_original = {}
         self.dict_group = {}
         self.path = path
         self.name = name
@@ -156,6 +167,7 @@ class MyDataLoaderNC(MyDataLoader):
             update self.data
         """
         self.data =  datatree.open_datatree(self.path)
+        self.data_original = datatree.open_datatree(self.path)
         self.loadGroup()
 
     def loadGroup(self)->dict:
@@ -164,7 +176,7 @@ class MyDataLoaderNC(MyDataLoader):
                                'var_name2' : []}}
         The prupose of this dictionnary is to update the comboBoxes of the interface
         that are used to select the data
-
+        ex: dict group after load {'/': {'Trigger': {}, 'Accelerations': {'axes': ['X', 'Y', 'Z']}, 'HDsEMG': {'Channel': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]}}}
         """
         # Extract the variables
         self.dict_group = walkDatatree_getPathDataset(self.data,{})
@@ -226,6 +238,23 @@ class MyDataLoaderNC(MyDataLoader):
 
 
 
+    def getDataOriginal(self,group,var,dim,channel):
+        """Returns the selected data
+
+        Args:
+            group (str): _description_
+            var (str): _description_
+            channel (str): _description_
+
+        Returns:
+            xarray: 
+        """
+        if channel.isdigit():
+           channel = int(channel) #could be fix with item instead of text ?
+
+        return self.data_original[group][var].loc[{dim:channel}] 
+    
+
     def getData(self,group,var,dim,channel):
         """Returns the selected data
 
@@ -237,10 +266,18 @@ class MyDataLoaderNC(MyDataLoader):
         Returns:
             xarray: 
         """
-       
-        try : channel = int(channel) #could be fix with item instead of text ?
-        except: pass
+        if channel.isdigit():
+           channel = int(channel) #could be fix with item instead of text ?
+
         return self.data[group][var].loc[{dim:channel}] 
+    
+    
+    def setData(self,group,var,dim,channel,data):
+        if channel.isdigit():
+           channel = int(channel) #could be fix with item instead of text ?
+
+        self.data[group][var].loc[{dim:channel}] = data
+
     
 
     def getDataVariable(self,group,var,dim=None):
@@ -280,9 +317,26 @@ class MyDataLoaderNC(MyDataLoader):
         return data_list
 
 
-    def setData(self,group,var,dim,channel,data):
-        pass
+    def setData(self,data,pathDict):
+        """
+
+        Args:
+            data (_type_): xarray Dataset
+            pathDict (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if pathDict in list(self.data.to_dict().keys()):
+            print('Path already in file')
+
+        datatreeToAdd = DataTree.from_dict({pathDict:data})
+        self.data = merge2datatree(self.data,datatreeToAdd)
+
         
+
+        # fooData = DataTree.from_dict({'/add':foo})
+                
 
     def saveData(self):
         pass
@@ -348,6 +402,14 @@ DATALOADER = {
     '.nc' : MyDataLoaderNC
 }
 
+
+def init_dataLoader(loader,path,*arg):
+        for gr in path.keys():
+            for var in path[gr].keys():
+                for dim in path[gr][f'{var}'].keys():
+                    for ch in path[gr][f'{var}'][dim]:
+                        x = loader.getDataOriginal(gr,var,dim,ch).values()                
+                        loader.setData(gr,f'{var}',dim,ch,x)
 
 def load_multiple_files(paths): # load _ multiple files
     """_summary_

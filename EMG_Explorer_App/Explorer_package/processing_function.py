@@ -6,11 +6,16 @@ from .mainwindow_utils import get_item_from_path
 ROOT = 'EMG_Explorer_App\Explorer_package\processing'
 ROOT_MEASUREMENT = 'EMG_Explorer_App\Explorer_package\summary_measurement'
 ROOT_DISPLAY = 'EMG_Explorer_App\Explorer_package\summary_display'
+ROOT_GLOBALPROCESSING = 'EMG_Explorer_App\Explorer_package\global_processing_pipelines'
 
-def apply_jsonFilter(x,pathFile):
-    f = open(f'{PATH_PIPELINE}{pathFile}.json')
-    data = json.load(f)
-    print('in apply json filter',pathFile,data)
+def apply_jsonFilter(x,pathFile,dictFile=None):
+    if pathFile == None:
+        f = open(f'{PATH_PIPELINE}{pathFile}.json')
+        data = json.load(f)
+        print('in apply json filter',pathFile,data)
+    else:
+        data = dictFile
+
     for nb,process in data.items():
         print(process)
         func = PROCESSING[process['path'][0]][process['name']]
@@ -20,6 +25,27 @@ def apply_jsonFilter(x,pathFile):
         x = func(**arg) 
 
     return x  
+
+
+def apply_jsonFilterGlobal(loader,pathData,pathFile,dictFile=None):
+    if pathFile == None:
+        f = open(f'{PATH_PIPELINE}{pathFile}.json')
+        data = json.load(f)
+        print('in apply json filter',pathFile,data)
+    else:
+        data = dictFile
+
+    
+                  
+    for nb,process in data.items():
+        print(process)
+        func = PROCESSING[process['path'][0]][process['name']]
+        arg = process['arguments']
+        print('list arg', arg)
+        func(loader,pathData,**arg) 
+
+    return x  
+
 
 def generate_processing_dict(ROOT):
     """Generate the constant dictionnary PROCESSING. This dictionnary comprises all the function
@@ -83,6 +109,33 @@ def menu_from_dict(dict_):
 
 
 
+
+def has_folder(ROOT):
+    for path in os.listdir(ROOT):
+        if os.path.isdir( ROOT + '\\' + path ):
+            return True
+    return False
+
+def dictOfFiles_from_EmbeddedFolders(ROOT):
+    list_process = []
+    PROCESS = {}
+
+    for path in os.listdir(ROOT):
+        if os.path.isdir( ROOT + '\\' + path ):
+            if has_folder(ROOT + '\\' + path ):
+                PROCESS[path] = dictOfFiles_from_EmbeddedFolders(ROOT + '\\' + path)
+            else:
+                PROCESS[path] = os.listdir( ROOT + '\\' + path )
+        else:
+            list_process.append(path)
+
+    if list_process != []:
+        PROCESS['general'] = list_process
+
+
+    return PROCESS
+#{'Acceleration': ['global_processing3.json'], 'EMG': {'folder1': [], 'folder2': ['global_processing2.json']}, 'general': ['global_processing.json.json']}
+
 PROCESSING = generate_processing_dict(ROOT)
 PROCESSING_NAME = menu_from_dict(PROCESSING)
 
@@ -90,3 +143,4 @@ MEASUREMENT = generate_processing_dict(ROOT_MEASUREMENT)
 DISPLAY = generate_processing_dict(ROOT_DISPLAY)
 MEASUREMENT_NAME = menu_from_dict(MEASUREMENT)
 DISPLAY_NAME = menu_from_dict(DISPLAY)
+
