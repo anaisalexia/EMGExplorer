@@ -144,6 +144,9 @@ class PlotLine(pg.MultiPlotWidget):
 
     def get_data(self):
         return [self.parent.get_dataChannel()]
+    
+    def get_dataPath(self):
+        return self.parent.get_dataChannelPath()
 
 
     def draw(self,data_list=None):

@@ -285,7 +285,7 @@ class EMGExplorer(QMainWindow):
         
         self.nb_layout = 3
         self.nb_version = 1
-
+        self.globalProcessingPath = 'None'
         ## GRAPH
 
         self.time = np.arange(100)
@@ -327,6 +327,7 @@ class EMGExplorer(QMainWindow):
         self.update_comboBoxGlobalProcessing()
         self.lcomboBox_globalProcessing.addWidget(self.comboBoxGlobalProcessing)
         self.comboBoxGlobalProcessing.pathChanged.connect(self.update_pathGlobalProcessing)
+        
     
     def update_comboBoxGlobalProcessing(self):
         lastSelection = self.comboBoxGlobalProcessing.text()
@@ -352,10 +353,7 @@ class EMGExplorer(QMainWindow):
         else:
             return {}
 
-    def apply_globalProcessing(self,loader,path):
-        globalProcessingdict = self.get_currentGlobalProcessingDict()
-        if globalProcessingdict != {}:
-            data = apply_jsonFilter(data,pathFile=None,dictFile=globalProcessingdict)
+  
 
 
 
@@ -403,6 +401,18 @@ class EMGExplorer(QMainWindow):
         dim = self.label_timeline_dim.text()
         
         return loader.getData(group,var,dim,ch)
+    
+    def get_dataChannelPath(self):
+        file_name = self.listWidget_file.currentItem().text()
+        loader = self.dataLoader[file_name]
+        group = self.comboBox_group.currentText()
+        var = self.comboBox_variable.currentText()
+        ch = self.comboBox_dim.currentText()
+        dim = self.label_timeline_dim.text()
+        ch = convertText(ch)
+        dictPath = {group : {var : {dim : [ch]}}}
+        return loader,dictPath
+
     
     def get_dataVariable(self):
         file_name = self.listWidget_file.currentItem().text()
@@ -616,7 +626,8 @@ class EMGExplorer(QMainWindow):
         except:
             return None
 
-
+    def get_globalProcessing(self):
+        return self.globalProcessingPath 
 
     # COMBOBOX FILE SYSTEM   
     def update_fileSystem_comboBox_Group(self):

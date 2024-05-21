@@ -3,7 +3,7 @@
 #######################
 import sys
 sys.path.append('EMG_Explorer_App\Explorer_package\processing')
-
+import functools
 
 # from functions.requirements import *
 # from functions.c3d_function import extract_channels_c3d, read_c3d
@@ -25,16 +25,26 @@ def Try_decorator(function):
 
 
 def DecoratorGlobal(function):
-
-    def wrapper(loader,path,*arg):
+    @functools.wraps(function)
+    def wrapper(**arg):
+        loader = arg['loader']
+        path = arg['path']
+        del arg['path']
+        del arg['loader']
+        print("Decorator Global in")
+        for k,v in arg.items():
+            if v == None:
+                del arg[k]
         for gr in path.keys():
             for var in path[gr].keys():
                 for dim in path[gr][f'{var}'].keys():
                     for ch in path[gr][f'{var}'][dim]:
-                        x = loader.getData(gr,var,dim,ch).values()
-                        x = function(x,*arg)
-                
+                        x = np.array(loader.getData(gr,var,dim,ch))
+                        arg['x'] = x
+                        x = function(x,**arg)
+
                         loader.setData(gr,f'{var}',dim,ch,x)
+                        print('Dataset')
         
     return wrapper
 
@@ -85,16 +95,17 @@ def emply_value_evaluate(emg,show = False, print = False):
 # TIME DOMAIN-------------------------------------------------------
 
 @DecoratorGlobal
-def mean_removal(emg,*args):
+def mean_removal(emg,*arg,**kargs):
+    print('MEAN REMOVAL')
     emg_output = emg - np.nanmean(emg)
     return emg_output
 
 @DecoratorGlobal
-def full_wave(emg,*args):
+def full_wave(emg,*arg,**kargs):
     return abs(emg)
 
 @DecoratorGlobal
-def linear_detrend(emg,*args):
+def linear_detrend(emg,*arg,**kargs):
     return signal.detrend(emg)
 
 
@@ -181,26 +192,28 @@ def hilbert_rectification(emg):
 
 
 # FILTER-----------------------------------------------------------------------------------------
-
-def butterfilter_dual(emg, order=2,c_f =10,type = 'lowpass', s_f = SAMPLING_RATE):
+@DecoratorGlobal
+def butterfilter_dual(emg, order=2,c_f =10,type = 'lowpass', s_f = SAMPLING_RATE,*arg,**kargs):
     
     assert not empty_value_check(emg),'Empty values emg filter'
     assert type in ['lowpass', 'highpass'], 'type of filter not valid'
     [b,a] = signal.butter(order,c_f,btype=type,analog=False, output='ba',fs=s_f)
     emg_filtered = signal.filtfilt(b,a,emg)
+    print('MEAN REMOVAL')
+
 
     return emg_filtered
 
 
-
-def butterfilter(emg, order=2,c_f=10 ,type = 'lowpass', s_f = SAMPLING_RATE):
+@DecoratorGlobal
+def butterfilter(emg, order=2,c_f=10 ,type = 'lowpass', s_f = SAMPLING_RATE,*arg,**kargs):
     sos = signal.butter(order,c_f,btype=type,analog=False, output='sos',fs=s_f)
     emg_filtered = signal.sosfilt(sos,emg)
     return emg_filtered
   
 
-
-def fir_filter(emg,c_f=10,nb_taps=5, type='lowpass', s_f = SAMPLING_RATE):
+@DecoratorGlobal
+def fir_filter(emg,c_f=10,nb_taps=5, type='lowpass', s_f = SAMPLING_RATE,*arg,**kargs):
     assert not empty_value_check(emg),'Empty values emg filter'
     assert type in ['lowpass', 'highpass'], 'type of filter not valid'
     filtered_emg = np.ones_like(emg)
@@ -211,8 +224,8 @@ def fir_filter(emg,c_f=10,nb_taps=5, type='lowpass', s_f = SAMPLING_RATE):
     return filtered_emg
   
 
-
-def butterfilter_bandpass_dual(emg, order=2,c_f_low=10,c_f_high=5, s_f = SAMPLING_RATE):
+@DecoratorGlobal
+def butterfilter_bandpass_dual(emg, order=2,c_f_low=10,c_f_high=5, s_f = SAMPLING_RATE,*arg,**kargs):
 
     assert not empty_value_check(emg),'Empty values emg filter bandpass'
     [b,a] = signal.butter(order,[c_f_low,c_f_high],btype='bandpass',analog=False, output='ba',fs=s_f)

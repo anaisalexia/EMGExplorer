@@ -4,15 +4,18 @@ from .setup import *
 
 def Try_decorator(function):
     print('in deco')
-    def wrapper(*arg):
+    def wrapper(*arg,**kwargs):
         try:
-            function(*arg)
+            function(*arg,**kwargs)
         except Exception as e:
             print(function.__name__)
             print(e)
 
     return wrapper
 
+def convertText(txt):
+    if txt.isdigit():
+        return int(txt)
 
 def deleteItemsOfLayout(layout):
      if layout is not None:

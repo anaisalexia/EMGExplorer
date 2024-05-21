@@ -58,9 +58,13 @@ DataLoader are specific to the type of file
 MyDataLoadernc, MyDataLoadercsv, MyDataLoaderc3d...
 end note
 
-class Layout_Graph{
-    - list_layout() {return list of layout}
+class Layout_Parameters_Type{
+    - layout_param() {layout to insert setting of the plot }
     - load_ui()
+    - oc_selectData()
+    - get_data()
+    - isDataIndependent()
+
 }
 note left
 Le Layout peut être personnalisé
@@ -88,12 +92,17 @@ class OneGraph{
     -ui_parameters
     -layout_graph { button }
     -layout_parameters
+    - update_drawing()
+    - selectedData
     - oc_clickButton()
     - oc_comboBox_type_changed()
+    - get_selectedData()
+    - retrieve_Data() { choose between the data retrieve by the plot or the chosen data}
     -add_paramUi_to_layout()
     -add_graphUi_to_layout()
     -add_setting_to_param()
     -setPlot()
+    - clearPlot()
 }
 
 class Layout_Paramerters_Type{

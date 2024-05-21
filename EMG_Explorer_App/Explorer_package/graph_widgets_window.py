@@ -1,6 +1,7 @@
 from .setup import *
 from .graph import PLOT
-from .mainwindow_utils import deleteItemsOfLayout
+from .mainwindow_utils import deleteItemsOfLayout, Try_decorator
+from .processing_function import apply_jsonFilterGlobal 
 
 class Canvas(FigureCanvasQTAgg):
     def __init__(self):
@@ -138,25 +139,36 @@ class OneGraph():
         print('retrieve_data')
         if not self.ui_parameters.isDataIndependent():
             # retrieve data from the mainwindow
-            data = self.ui_graph.get_data()
-            print('retrive not independent data',data)
-
-            
+            loader,path = self.ui_graph.get_dataPath()
+            print('retrive not independent data')
 
         else:
             #retrieve data from the parameters
-            data = self.ui_parameters.get_data()
-            print('retrive independent data',data)
+            loader,path = self.ui_parameters.get_data()
+            print('retrive independent data')
 
-        print('retrieved dataaaa', data)
-        return data
+        print('retrieved dataaaa', loader,path)
+        return loader,path
     
     def update_drawing(self):
         if self.ui_graph:
             self.ui_graph.clearGraph()
-            data = self.retrieve_Data()
-            print('update drawing',data)
+            loader,path = self.retrieve_Data()
+            print('update drawing',loader,path)
 
+            #reset data actual loader
+            self.parent.get_currentLoader().init_dataLoader(path)
+            #apply global filters
+            dictGlobalProcessing = self.parent.get_currentGlobalProcessingDict()
+            apply_jsonFilterGlobal(loader,path,pathFile=None,dictFile=dictGlobalProcessing)
+
+            # transmit data to draw
+            data = []
+            for gr in list(path.keys()):
+                for var in list(path[gr].keys()):
+                    for dim in list(path[gr][var].keys()):
+                        for ch in path[gr][var][dim]:
+                            data.append(loader.getData(gr,var,dim,ch))
             self.ui_graph.draw(data)
 
     def add_paramUi_to_layout(self):

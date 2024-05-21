@@ -32,7 +32,7 @@ from pyqtgraph.parametertree import Parameter, ParameterTree, parameterTypes, re
 from qtpy import QtGui, QtCore,QtWidgets
 from qtpy.QtWidgets import *
 
-from functools import partial
+from functools import partial,wraps
 
 import xarray as xr
 from datatree import DataTree

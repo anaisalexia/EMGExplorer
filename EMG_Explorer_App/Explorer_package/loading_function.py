@@ -62,7 +62,7 @@ class MyDataLoader(ABC):
         return np.array([])
     
     @abstractmethod
-    def setData(self,group,var,channel,data):
+    def setData(self,group,var,dim,channel,data):
         pass
     
     @abstractmethod
@@ -194,6 +194,14 @@ class MyDataLoaderNC(MyDataLoader):
         """
         pass
 
+    def init_dataLoader(self,path):
+        for gr in path.keys():
+            for var in path[gr].keys():
+                for dim in path[gr][f'{var}'].keys():
+                    for ch in path[gr][f'{var}'][dim]:
+                        x = np.array(self.getDataOriginal(gr,var,dim,ch)   )             
+                        self.setData(gr,f'{var}',dim,ch,x)
+
     def getPath(self):
         return self.path
         
@@ -249,9 +257,11 @@ class MyDataLoaderNC(MyDataLoader):
         Returns:
             xarray: 
         """
-        if channel.isdigit():
-           channel = int(channel) #could be fix with item instead of text ?
-
+        try:
+            if channel.isdigit():
+                channel = int(channel) #could be fix with item instead of text ?
+        except:
+            pass
         return self.data_original[group][var].loc[{dim:channel}] 
     
 
@@ -266,15 +276,19 @@ class MyDataLoaderNC(MyDataLoader):
         Returns:
             xarray: 
         """
-        if channel.isdigit():
-           channel = int(channel) #could be fix with item instead of text ?
+        try:
+            if channel.isdigit():
+                channel = int(channel) #could be fix with item instead of text ?
+        except:
+            pass
 
         return self.data[group][var].loc[{dim:channel}] 
     
     
     def setData(self,group,var,dim,channel,data):
-        if channel.isdigit():
-           channel = int(channel) #could be fix with item instead of text ?
+        if not isinstance(channel,int):
+            if channel.isdigit():
+                channel = int(channel) #could be fix with item instead of text ?
 
         self.data[group][var].loc[{dim:channel}] = data
 
@@ -317,7 +331,7 @@ class MyDataLoaderNC(MyDataLoader):
         return data_list
 
 
-    def setData(self,data,pathDict):
+    def setMultipleData(self,data,pathDict):
         """
 
         Args:
@@ -403,7 +417,7 @@ DATALOADER = {
 }
 
 
-def init_dataLoader(loader,path,*arg):
+def init_dataLoader(loader,path):
         for gr in path.keys():
             for var in path[gr].keys():
                 for dim in path[gr][f'{var}'].keys():

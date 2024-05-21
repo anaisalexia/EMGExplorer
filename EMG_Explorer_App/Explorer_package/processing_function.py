@@ -1,7 +1,7 @@
 from importlib.machinery import SourceFileLoader
 import os
 from .setup import *
-from .mainwindow_utils import get_item_from_path
+from .mainwindow_utils import get_item_from_path,Try_decorator
 
 ROOT = 'EMG_Explorer_App\Explorer_package\processing'
 ROOT_MEASUREMENT = 'EMG_Explorer_App\Explorer_package\summary_measurement'
@@ -26,25 +26,38 @@ def apply_jsonFilter(x,pathFile,dictFile=None):
 
     return x  
 
-
-def apply_jsonFilterGlobal(loader,pathData,pathFile,dictFile=None):
-    if pathFile == None:
+@Try_decorator
+def apply_jsonFilterGlobal(loader,pathData,pathFile=None,dictFile=None):
+    if pathFile != None:
         f = open(f'{PATH_PIPELINE}{pathFile}.json')
-        data = json.load(f)
-        print('in apply json filter',pathFile,data)
+        processDict = json.load(f)
+        print('in apply json filter',pathFile,processDict)
     else:
-        data = dictFile
+        processDict = dictFile
 
-    
-                  
-    for nb,process in data.items():
-        print(process)
-        func = PROCESSING[process['path'][0]][process['name']]
-        arg = process['arguments']
-        print('list arg', arg)
-        func(loader,pathData,**arg) 
+    # apply process for each variable
+    for gr in list(pathData.keys()):
+        for var in list(pathData[gr].keys()):
+            try:
+                # find the accurate 
+                processVar = processDict[var]
 
-    return x  
+                for nb,process in processVar.items():
+                    print(process)
+                    func = PROCESSING[process['path'][0]][process['name']]
+                    arg = process['arguments']
+                    print('list arg', arg)
+                    arg_copy = arg.copy()
+                    for k,v in arg_copy.items():
+                        if v == None:
+                            del arg[k]
+                    arg['path'] = pathData
+                    arg['loader'] = loader
+                    func(**arg) 
+
+            except Exception as e:
+                print('NO PROCESS FOR VAR:', var,e)
+
 
 
 def generate_processing_dict(ROOT):
