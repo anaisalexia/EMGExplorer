@@ -3,259 +3,80 @@ from Explorer_package import *
 from Explorer_package.loading_function import *
 from PyQt5.QtCore import Qt
 import os
+from io import StringIO
+
+log_stream = StringIO() 
 
 
-class GroupParametersGlobalProcessing(QWidget):
+logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.DEBUG) # File Handler
+# Stream handler
+streamHandler = logging.StreamHandler(log_stream)
+logger = logging.getLogger('main')
+logger.addHandler(streamHandler)
 
-    delete_trigger = pyqtSignal(str)
-
-    def __init__(self,name):
+class LogWindow(QWidget):
+    PATH_LOG = 'app.log'
+    def __init__(self):
         super().__init__()
-        self.groupName = name
-        self.listProcessing = {} 
-        self.nb = len(self.listProcessing.keys()) 
-
-        self.groupParamters = Parameter.create( name=self.groupName, type='group')
-        self.groupParamters.addChild({'name': 'Functionality', 'type': 'group', 'children': [
-        {'name': 'Delete', 'type': 'action'},
-        {'name': 'Load', 'type': 'action'},
-        ]})
-        self.paramsAdd = Parameter.create(name='Add', type='popupmenu', title= '+')
-        self.groupParamters.child('Functionality').addChild(self.paramsAdd)
-        self.paramsAdd.setData(PROCESSING_NAME)
-
-        self.paramsAdd.pathChanged.connect(lambda path : self.addNew(get_item_from_path(PROCESSING,path),path ))
-        self.groupParamters.param('Functionality','Delete').sigActivated.connect(self.oc_delete_handler)
-
-        self.groupParamters.param('Functionality','Load').sigActivated.connect(self.oc_open)
-        # self.createParameters()   
-           
-    def oc_delete_handler(self):
-        print('in delete handler')
-        self.delete_trigger.emit(self.groupName)
-
-    def getParameters(self):
-        return self.groupParamters
-    
-    def addNew(self,processing,path):
-        """Add a filter
-
-        Args:
-            val (_type_): _description_
-        """
-        val = f"{path[-1]}_[{'_'.join(path[:-1])}] "
-        setting = OneSetting(processing,val,self.nb,self,path[:-1])
-        setting.delete_trigger.connect(self.oc_delete)
-        setting.position_trigger.connect(self.oc_position)
-        
-        self.groupParamters.addChild(setting)
-        self.listProcessing[self.nb] = setting
-        print('child param added pos:', self.nb,setting)
-        self.nb += 1    
-
-    def clearGroupParameters(self):
-        self.groupParamters.clearChildren()
-        self.nb = 0
-
-    def oc_open(self):
-        path = QFileDialog.getOpenFileName(None, 'Open File')
-                                       #"/home/jana/untitled.png",
-                                    #    "Json (*.json)")
-        #open filter
-        print('path open is', path)
-        self.LoadJson(path[0])
-    
-
-    def LoadJson(self,path,data=None):
-        # self.p.clearChildren()
-        if (path == None) and (data != None):
-            data = data
-        else:
-            self.path = path
-            f = open(self.path)
-            data = json.load(f)
-        
-
-
-        for pos,process in data.items():
-            pos = int(pos) 
-
-            if pos < self.nb:
-                pos+=self.nb
-            # get function
-            func = get_item_from_path(PROCESSING,process['path'] + [process['name']])
-            # get path
-            path = process['path'] + [process['name']]
-            # add new
-            print('before add New',func, path)
-            self.addNew(func,path)
-            # change argument
-            print('pos and process',pos,process)
-            for name_arg,val_arg in process['arguments'].items():
-                # put the default value
-                print(name_arg,val_arg,self.listProcessing[pos].param(name_arg).value())
-                self.listProcessing[pos].param(name_arg).setValue(val_arg)
-                print(name_arg,val_arg,self.listProcessing[pos].param(name_arg).value())
-
-
-    def shift_position(self,new_nb,type,nb_current=None):
-        if nb_current == None:
-            print('shift default value')
-            nb_current = self.nb 
-
-        print('shiiiii1iif',nb_current, 'to',new_nb)
-
-        # else:
-        if type == 'add': # new_nb<nb_current
-            for n in range(nb_current-1,new_nb-1,-1):
-                print('add',n,'to',n+1)
-                self.listProcessing[n+1] = self.listProcessing[n]
-                self.listProcessing[n+1].position = n + 1
-                self.listProcessing[n+1].param('Functionality','Position').setValue(n+1,blockSignal=self.listProcessing[n+1].oc_position_handler)
-
-        elif type == 'del': # new_nb>nb_current
-            print('IN ELIF DEL',new_nb,nb_current )
-            for n in range(nb_current,new_nb):
-                print('del',n+1,'to',n)
-                self.listProcessing[n] = self.listProcessing[n+1]
-                self.listProcessing[n].position = n 
-                self.listProcessing[n].param('Functionality','Position').setValue(n,blockSignal=self.listProcessing[n].oc_position_handler)
-
-
-    def oc_delete(self,nb):
-        print(nb)
-        self.groupParamters.removeChild(self.listProcessing[nb])
-        self.listProcessing.pop(nb)
-        if nb == self.nb-1:
-            pass
-        else:
-            self.shift_position(nb,'del')
-        self.nb -= 1
-    
-    def oc_position(self,nb,new_val):
-        print('oc_posiiiiition',nb,new_val)
-        new_val = int(new_val)
-        self.groupParamters.removeChild(self.listProcessing[nb])
-        self.groupParamters.insertChild(new_val+1,self.listProcessing[nb])
-
-        
-        self.listProcessing[nb].position = new_val
-        if nb > new_val:
-            print('shift add', nb,new_val)
-            child = self.listProcessing[nb]
-            self.shift_position(new_val,'add',nb)
-            self.listProcessing[new_val] = child
-        if new_val > nb:
-            print('shift del',nb,new_val)
-            child = self.listProcessing[nb]
-            self.shift_position(new_val,'del',nb)
-            self.listProcessing[new_val] = child
-
-    def setting_to_json(self):
-        dictjson = {}
-        for n in range(self.nb):
-            setting = self.listProcessing[n]
-            dictjson[n]={'name':setting.function.__name__,
-                         'path':setting.path,
-                         'arguments':dict(zip(setting.var,[setting.param(v).value() for v in setting.var]))}
-
-        print(dictjson)
-        return dictjson
-
-
-
-class GlobalProcessingTab(QWidget):
-
-    processingSaved = pyqtSignal(str)
-
-    def __init__(self,parent):
-        super().__init__()
-        
         # Loading of the UI
-        loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\layout_globalProcessing.ui', self)
-        self.p = parent
+        loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\main_log_layout.ui', self)
+        self.label_log.setWordWrap(True)
+        self.label_wholeLog.setWordWrap(True)
+        self.scrollArea_log.setVisible(False) 
+        self.bool_logInfo = False
+        self.button_log.clicked.connect(self.oc_buttonLog)
 
-        self.globalProcessingTree = ParameterTree()
-        self.layout_Processing.addWidget(self.globalProcessingTree)
-        self.globalProcessingDict = {}
+    def set_labelLog(self,info):
+        self.label_log.setText(info)
 
-        self.comboBoxAddVar.textActivated.connect(self.addNewGroupParameters)
-        self.button_save.clicked.connect(self.oc_saveFilter)
-        self.button_clear.clicked.connect(self.oc_clear)
-        self.button_open.clicked.connect(self.oc_open)
+    def oc_buttonLog(self):
+        self.bool_logInfo = not self.bool_logInfo
+        if self.bool_logInfo:
+            self.update_log()
+            self.scrollArea_log.setVisible(True) 
 
-    def addNewGroupParameters(self,groupName):
-        if groupName not in list(self.globalProcessingDict.keys()):
-            self.globalProcessingDict[groupName] = GroupParametersGlobalProcessing(groupName)
-            self.globalProcessingTree.addParameters(self.globalProcessingDict[groupName].getParameters())
-            self.globalProcessingDict[groupName].delete_trigger.connect(lambda name: self.oc_delete(name))
-    
-    def oc_delete(self,name):
-        self.globalProcessingDict.pop(name)
-        self.globalProcessingTree.clear()
-        for group in list(self.globalProcessingDict.keys()):
-            self.globalProcessingTree.addParameters(self.globalProcessingDict[group].getParameters())
-
-
-
-    def updateComboBox(self,data):
-        self.comboBoxAddVar.clear()
-        self.comboBoxAddVar.addItems(data)
-
-
-    def setting_to_json(self):
-        dictjson = {}
-        for k,v in self.globalProcessingDict.items():
-            dictjson[k]= v.setting_to_json()
-
-        print(dictjson)
-        return dictjson
-    
-    def oc_saveFilter(self):
-        dictjson = self.setting_to_json()
-        namepath = QFileDialog.getSaveFileName(self, 'Save File',
-                                       #"/home/jana/untitled.png",
-                                       "Json (*.json)")
-        if os.path.exists(f'{namepath[0]}.json'):
-            print('the file exist already')
         else:
-            with open(f'{namepath[0]}.json', 'w') as f:
-                json.dump(dictjson, f)
-            self.processingSaved.emit(namepath[0])
+            self.scrollArea_log.setVisible(False) 
+    
+    def update_log(self,arg=None):
+        if self.bool_logInfo:
+            f  = open(self.PATH_LOG, "r")
+            self.label_wholeLog.setText(log_stream.getvalue())
+        
 
-    def oc_clear(self):
-        self.globalProcessingTree.clear()
-        self.globalProcessingDict = {}
-
-    def oc_open(self):
-        # get path
-        path = QFileDialog.getOpenFileName(self, 'Open File',)
-                                       #"/home/jana/untitled.png",
-                                    #    "Json (*.json)")
-        #open filter
-        print('path open is', path)
-        self.loadJson(path[0])
-
-    def loadJson(self,path):
-        self.path = path
-        f = open(self.path)
-        data = json.load(f)
-
-        for group,dictprocessing in data.items():
-            self.addNewGroupParameters(group)
-            self.globalProcessingDict[group].LoadJson(path=None,data=dictprocessing)
-
-
-
-
+    
 
 
 class EMGExplorer(QMainWindow):
 
+
     def __init__(self):
         super().__init__()
         # Loading of the UI
-        loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\EMGExplorer_mainwindow_base.ui', self)
+        loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\EMGExplorer_mainwindow_base2.ui', self)
+
+        self.log = LogWindow()
+        self.layout_log.addWidget(self.log)
+
+        class OutputHandler(logging.Handler,QWidget):
+            log_received = pyqtSignal(str)
+
+            def __init__(self) -> None:
+                logging.Handler.__init__(self)
+                QWidget.__init__(self)
+
+            def emit(self, record):
+                if record.levelno == logging.INFO:
+                    print('output LOGGER',record.getMessage())
+                    self.log_received.emit(record.getMessage())
+
+        warning_handler = OutputHandler()
+        warning_handler.log_received.connect(self.log.set_labelLog)
+        warning_handler.log_received.connect(self.log.update_log)
+        logger.addHandler(warning_handler)
+
+        
+
 
         # Initialisation of variables
         self.w = None
@@ -268,7 +89,7 @@ class EMGExplorer(QMainWindow):
         #
         self.dataLoader = {}
         self.layout_param = self.layout_parameters
-
+        self.path_globalProcessing = ['None']
 
         ## MENU
         # Definition of the action
@@ -285,7 +106,6 @@ class EMGExplorer(QMainWindow):
         
         self.nb_layout = 3
         self.nb_version = 1
-        self.globalProcessingPath = 'None'
         ## GRAPH
 
         self.time = np.arange(100)
@@ -314,13 +134,14 @@ class EMGExplorer(QMainWindow):
         self.widget_globalProcessing.processingSaved.connect(self.update_comboBoxGlobalProcessing)
         
         self.init_comboBoxGlobalProcessing()
-        print('iiiiiiniiit')
+        
         self.interactivity_fileSystem()
 
+        logger.info('Initialisation of the Interface finished')
         self.show()
 
 
-
+    #### Global processing ####
     def init_comboBoxGlobalProcessing(self):
         print('ComboBox GlobalProcessing init')
         self.comboBoxGlobalProcessing = ComboBoxExpandable()
@@ -344,7 +165,7 @@ class EMGExplorer(QMainWindow):
         self.path_globalProcessing = listpath
 
     def get_currentGlobalProcessingDict(self):
-        if self.path_globalProcessing != 'None':
+        if self.path_globalProcessing != ['None']:
             listpath = list(filter(lambda a: a != 'general', self.path_globalProcessing))
             f = open(f'{ROOT_GLOBALPROCESSING}/{"/".join(listpath)}')
             print('get global processing dict', f)
@@ -352,11 +173,13 @@ class EMGExplorer(QMainWindow):
             return data
         else:
             return {}
+    #### end Global processing ####
+
 
   
 
 
-
+    #### Local Processing ####
     def oc_openFilter(self):
         # get path
         path = QFileDialog.getOpenFileName(self, 'Open File',)
@@ -390,8 +213,10 @@ class EMGExplorer(QMainWindow):
         else:
             with open(f'{namepath[0]}.json', 'w') as f:
                 json.dump(dictjson, f)
+    #### end Local Processing ####
 
 
+    #### Getter, data, path, loader ####
     def get_dataChannel(self):
         file_name = self.listWidget_file.currentItem().text()
         loader = self.dataLoader[file_name]
@@ -423,14 +248,45 @@ class EMGExplorer(QMainWindow):
         
         return loader.getDataVariable(group,var,dim)
     
-    def get_currentPlot(self):
-        return self.dict_layout_graph[self.current_id]
+    def get_dataVariablePath(self):
+        """Return a path to all channel of one variable
 
+        Returns:
+            _type_: _description_
+        """
+        file_name = self.listWidget_file.currentItem().text()
+        loader = self.dataLoader[file_name]
+        group = self.comboBox_group.currentText()
+        var = self.comboBox_variable.currentText()
+        dim = self.label_timeline_dim.text()
+        list_ch = [convertText(ch) for ch in loader.getListChannel(group,var,dim)]
+        dictPath = {group : {var : {dim : list_ch}}}
+        return loader,dictPath
+
+    def get_currentLoader(self):
+        try:
+            file_name = self.listWidget_file.currentItem().text()
+            return self.dataLoader[file_name]
+        except:
+            return None
+
+    def get_globalProcessing(self):
+        return self.path_globalProcessing 
     
+    #### end Getter, data, path, loader #### 
+    
+    # def get_currentPlot(self):
+    #     return self.dict_layout_graph[self.current_id]
+
+    #### Layout of the Graphs, List of Graph, Graphs ####
+    def clearAllPlot(self):
+        for plot in list(self.dict_layout_graph.values()):
+           plot.clearPlot() 
+
     def update_list_layout_graph(self):
         """Updates the variable dict_layout_graph
         Create a dictionnary with the layout that can be used to display graphs 
-        { id : Gridlayout}
+        { id : OneGraph }
         """
         self.dict_layout_graph = {}
         i = 0
@@ -440,16 +296,13 @@ class EMGExplorer(QMainWindow):
                 self.dict_layout_graph[i] = OneGraph(frame,self.layout_param,i,self)
                 i += 1
 
-    
-
       
-        
     def oc_update_layout_graph(self,nb,nb_v):
-        """Changes the layout of of the graphs. update the displayed plot
+        """Changes the general layout of the graphs and update the displayed plot
 
         Args:
-            nb (int): number of graphs
-            nb_v (int): number cooresponding to the layout of the graphs
+            nb (int): number of graphs on the layout
+            nb_v (int): number cooresponding to the version of the layout of the graphs (in case their is multiple x-layout graph)
         """
         # update the number of windows in the graph
         self.gridLayout_3.removeWidget(self.layout)
@@ -461,15 +314,16 @@ class EMGExplorer(QMainWindow):
 
         # update the list of the frames used to display graph
         self.update_list_layout_graph()
+    #### end Layout of the Graphs, List of Graph, Graphs ####
 
 
-    def update_parameters_win(self,graph_id):
-        param = self.dict_displayed_graph[graph_id]['param']
-        # if the same type of graph is displayed
+    # def update_parameters_win(self,graph_id):
+    #     param = self.dict_displayed_graph[graph_id]['param']
+    #     # if the same type of graph is displayed
 
 
 
-
+    #### Menu Action functions ####
     def oc_newFilter(self):
         if self.wnewFilter is None:
             # self.wnewFilter = NewFilterWindow()
@@ -477,24 +331,12 @@ class EMGExplorer(QMainWindow):
         self.wnewFilter.show()
 
 
-
     def oc_newSummary(self):
         if self.w is None:
             self.w = SummaryWindow(self)
         self.w.show()
         
-
-
-    def oc_itemPressed(self, item, int_col):
-        if int_col!=0:
-            text, ok = QInputDialog().getText(self, "input",
-                                            "data:", QLineEdit.Normal,
-                                     item.text(int_col))
-            if ok and text:
-                item.setText(int_col,text)
-
-
-
+    
     def oc_action1(self):
         self.oc_actiontype1()
 
@@ -509,16 +351,33 @@ class EMGExplorer(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea,self.dock[self.nb_dock])
         self.nb_dock +=1
 
-
     def oc_visibility(self,dock,visibility):
+        """ change the visibility of a dock window"""
         #### !! PB: error bc called when the win closes
         if not visibility:
             self.removeDockWidget(self.dock[dock])
             self.dock[dock].deleteLater()
             del self.dock[dock]
             # self.widget_name = None
+    #### end Menu Action functions ####
+
+
+
+    #### Metadata Tab ####
+    def oc_itemPressed(self, item, int_col):
+        if int_col!=0:
+            text, ok = QInputDialog().getText(self, "input",
+                                            "data:", QLineEdit.Normal,
+                                     item.text(int_col))
+            if ok and text:
+                item.setText(int_col,text)
+    #### end Metadata Tab ####
+
+
 
     
+
+    #### Saving and restoring Layout #### 
     def restoreSettings(self):
         """Restores the last state of the app
         """
@@ -565,8 +424,6 @@ class EMGExplorer(QMainWindow):
                 break
             
 
-
-
     def closeEvent(self, event):
         """Function triggered when the mainwindow is closed
 
@@ -600,14 +457,15 @@ class EMGExplorer(QMainWindow):
 
 
         # save tab state
+    #### end Saving and restoring Layout #### 
 
 
 
 
+    
 
 
-
-    ## FILES MANAGEMENT
+    #### FILES MANAGEMENT ####
 
     def oc_load_files(self):
         # load the paths
@@ -619,17 +477,9 @@ class EMGExplorer(QMainWindow):
         for loader in self.dataLoader.keys():
             self.listWidget_file.addItem(loader)
 
-    def get_currentLoader(self):
-        try:
-            file_name = self.listWidget_file.currentItem().text()
-            return self.dataLoader[file_name]
-        except:
-            return None
+    
 
-    def get_globalProcessing(self):
-        return self.globalProcessingPath 
-
-    # COMBOBOX FILE SYSTEM   
+    # combobox file system update  
     def update_fileSystem_comboBox_Group(self):
         print('update group')
         """Add the group paths to the comboBox
@@ -688,10 +538,6 @@ class EMGExplorer(QMainWindow):
         self.oc_comboBox_dim_change()
 
 
-    def clearAllPlot(self):
-        for plot in list(self.dict_layout_graph.values()):
-           plot.clearPlot() 
-
     # file system interactivity
     def oc_ListWidget_change(self,item):    
         print('oc widget')    
@@ -735,8 +581,6 @@ class EMGExplorer(QMainWindow):
             self.oc_comboBox_dim_change()
 
       
-
-
     def oc_comboBox_variable_change(self,):
         """When a variable is selected, the list of displayable channels are changed
         """
@@ -768,9 +612,13 @@ def main():
     ex.raise_()
     
     sys.exit(app.exec_())
+    
+    
 
 
 if __name__ == '__main__':
     main()
+    logger.debug('Interface closed')
+
 
 
