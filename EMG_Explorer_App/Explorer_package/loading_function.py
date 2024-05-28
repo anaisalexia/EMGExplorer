@@ -1,4 +1,7 @@
 from .setup import *
+import logging
+
+logger = logging.getLogger(f'main.{__name__}')
 
 
 def merge2datatree(datatree1:DataTree,datatree2:DataTree):
@@ -153,6 +156,7 @@ class MyDataLoaderNC(MyDataLoader):
         self.name = name
         self.attrs = {}
         self.openFile()
+        logger.info(f'File open {name}')
 
 
     # DATA
@@ -224,24 +228,47 @@ class MyDataLoaderNC(MyDataLoader):
             for gr in self.getListGroup():
                 list_var += list(self.dict_group[gr].keys())
             return list_var
+        
+    def getListDimension(self,group=None,var=None):
+        if group != None:
+            if var != None:
+                return list(self.dict_group[group][var].keys())
+            else:
+                list_dim = []
+                for var in self.dict_group[group]:
+                    list_dim += list(self.dict_group[group][var].keys())
+                return list_dim
+            
+        else:
+            list_dim = []
+            for group in list(self.dict_group.keys()):
+                for var in self.dict_group[group]:
+                    list_dim += list(self.dict_group[group][var].keys())
+                return list_dim 
+            
 
-    def getListChannel(self,group=None,var=None):
+    def getListChannel(self,group=None,var=None,dim=None):
         if group != None:
             group_dict = self.dict_group[group]
             if var != None:
                 group_var = group_dict[var]
-                return list(group_var.keys())
+                if dim==None : return group_var[list(group_var.keys())[0]]
+                else: return group_var[dim]
             else:
                 list_ch = []
-                for var in list(group_dict.keys()):
-                    list_ch += list(self.dict_group[gr][var].keys())
+                for var in self.getListVariable(group):
+                    for dim in self.getListDimension(group,var) if dim == None else [dim]:
+                        group_var = group_dict[var]
+                        list_ch += group_var[dim].values()
                 return list_ch
             
         else:
             list_ch = []
             for gr in self.getListGroup():
-                for var in list(self.dict_group[gr].keys()):
-                    list_ch += list(self.dict_group[gr][var].keys())
+                for var in self.getListVariable(gr):
+                    for dim in self.getListDimension(gr,var) if dim == None else [dim]:
+                        group_var = group_dict[var]
+                        list_ch += group_var[dim].values()
             return list_ch
 
 
@@ -286,9 +313,11 @@ class MyDataLoaderNC(MyDataLoader):
     
     
     def setData(self,group,var,dim,channel,data):
-        if not isinstance(channel,int):
+        try:
             if channel.isdigit():
                 channel = int(channel) #could be fix with item instead of text ?
+        except:
+            pass
 
         self.data[group][var].loc[{dim:channel}] = data
 
@@ -305,6 +334,8 @@ class MyDataLoaderNC(MyDataLoader):
         Returns:
             np.array: 
         """
+        if dim != None:
+            return self.data[group][var][dim]
         return self.data[group][var] 
     
     def get_DataFromDict(self,dictData):

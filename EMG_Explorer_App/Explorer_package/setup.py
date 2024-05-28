@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 import json
+import logging
 
 
 from scipy import signal
@@ -43,6 +44,8 @@ from jinja2 import Template
 
 # CONSTANT
 PATH_PIPELINE = 'EMG_Explorer_App/Explorer_package/processing pipelines/'
+PATH_GLOBAL_PIPELINE = 'EMG_Explorer_App/Explorer_package/global_processing_pipelines/'
+
 from .processing_function import MEASUREMENT,MEASUREMENT_NAME,DISPLAY,DISPLAY_NAME,PROCESSING,PROCESSING_NAME
 
 

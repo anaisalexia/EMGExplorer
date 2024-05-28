@@ -1,9 +1,13 @@
 from .setup import *
 from .custom_widget import *
 from .processing_function import PROCESSING_NAME,get_item_from_path,PROCESSING,apply_jsonFilter
+from .mainwindow_utils import Try_decorator
 
 NAME_JSONFOLDER = 'Custom Filters'
 
+#########################
+## FUNCTIONS
+#########################
 def create_menuJson(root):
     dictJson = {NAME_JSONFOLDER: []}
     for name in os.listdir(root):
@@ -11,6 +15,12 @@ def create_menuJson(root):
             dictJson[NAME_JSONFOLDER] += [name[:-5]]
 
     return dictJson
+
+
+#########################
+## Parameters layouts
+#########################
+
 
 class LayoutParameters(QWidget):
     processingPathChanged_handler = pyqtSignal(list)
@@ -106,6 +116,13 @@ class LayoutParameters_MultiplePlot2(QWidget):
     #     self.spinBox_limit.textChanged.connect(self.update_nbChannel)
 
 
+
+
+#########################
+## Plot Types
+#########################
+
+
 class PlotGeneral(ABC):
      
     def __init__(self,layout,layout_graph,i,parent):
@@ -120,6 +137,10 @@ class PlotGeneral(ABC):
         pass
 
     @abstractmethod
+    def get_dataPath(self):
+        raise NotImplementedError()
+
+    @abstractmethod
     def clearGraph(self):
         pass
 
@@ -127,6 +148,14 @@ class PlotGeneral(ABC):
   
 
 class PlotLine(pg.MultiPlotWidget):
+    """Plot of type Lineplot
+
+    Args:
+        pg (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     __metaclass__ = PlotGeneral
 
     def __init__(self, layout, layout_graph, i, parent):
@@ -146,6 +175,11 @@ class PlotLine(pg.MultiPlotWidget):
         return [self.parent.get_dataChannel()]
     
     def get_dataPath(self):
+        """return the loader and the path to the current selected channel
+
+        Returns:
+            _type_: _description_
+        """
         return self.parent.get_dataChannelPath()
 
 
@@ -175,6 +209,8 @@ class PlotLine(pg.MultiPlotWidget):
 
     def clearGraph(self):
         self.plot.clear()
+
+
 
     # LAYOUT FUNCTIONNALITY
     def init_layoutGraphInteractivity(self):
@@ -219,6 +255,14 @@ class FFT(pg.MultiPlotWidget):
 
     def get_data(self):
         return [self.parent.get_dataChannel()]
+    
+    def get_dataPath(self):
+        """return the loader and the path to the current selected channel
+
+        Returns:
+            _type_: _description_
+        """
+        return self.parent.get_dataChannelPath()
 
     def draw(self,data_list):
         for data in data_list:
@@ -312,28 +356,28 @@ class MultiplePlot(pg.MultiPlotWidget):
         for i in range(self.nb_plot):
             self.plot[i].clear()
 
-def Try_decorator(function):
-    print('in deco')
-    def wrapper(*arg):
-        try:
-            function(*arg)
-        except Exception as e:
-            print(function.__name__)
-            print(e)
+# def Try_decorator(function):
+#     print('in deco')
+#     def wrapper(*arg):
+#         try:
+#             function(*arg)
+#         except Exception as e:
+#             print(function.__name__)
+#             print(e)
 
-    return wrapper
-
-
+#     return wrapper
 
 
 
 
-class ComboBoxcustom(QComboBox):
-    popupAboutToBeShown = QtCore.pyqtSignal()
 
-    def showPopup(self):
-        self.popupAboutToBeShown.emit()
-        super(QComboBox, self).showPopup()
+
+# class ComboBoxcustom(QComboBox):
+#     popupAboutToBeShown = QtCore.pyqtSignal()
+
+#     def showPopup(self):
+#         self.popupAboutToBeShown.emit()
+#         super(QComboBox, self).showPopup()
 
 
 
@@ -413,6 +457,14 @@ class MultiplePlot2(pg.MultiPlotWidget):
 
     def get_data(self):
         return self.parent.get_dataVariable()
+    
+    def get_dataPath(self):
+        """return the loader and the path to the current selected channel
+
+        Returns:
+            _type_: _description_
+        """
+        return self.parent.get_dataVariablePath()
 
     @Try_decorator
     def draw(self,data,distance=None,timestamp=False):
@@ -476,6 +528,9 @@ class MultiplePlot2(pg.MultiPlotWidget):
             self.plot[i].clear()
 
 
+#########################
+## Plot Dictionnaries
+#########################
 
 PLOT = {
     'fft':FFT,
@@ -484,6 +539,3 @@ PLOT = {
     'multiple_plot2':MultiplePlot2
 }
 
-# Emplacement -> type de widget
-# type de widget -> Graph
-# Graph -> setting du graph

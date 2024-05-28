@@ -482,6 +482,51 @@ import os
 # pro = dictOfFiles_from_EmbeddedFolders(ROOT)
 # print(pro)
 
-list_t = ['general',1,3,'general']
-list_t =  list(filter(lambda a: a != 'general', list_t))
-print(list_t)
+# list_t = ['general',1,3,'general']
+# list_t =  list(filter(lambda a: a != 'general', list_t))
+# print(list_t)
+
+import logging
+
+logger = logging.getLogger('test')
+logger_a = logging.getLogger('test.a')
+
+f_handler = logging.FileHandler('apptest.log')
+f_handler.setLevel(logging.DEBUG)
+f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+f_handler.setFormatter(f_format)
+logger.addHandler(f_handler)
+
+
+
+
+class Filterloggera( logging.Filter):
+    def __ini__():
+        super().__init__()
+
+    def filter(self,record):
+        print("in record a")
+        record.ip = 'testip'
+        return True
+    
+class OutputHandler(logging.Handler):
+    def emit(self, record):
+        if record.levelno == logging.WARNING:
+            print('output',record.getMessage())
+
+warning_handler = OutputHandler()
+logger.addHandler(warning_handler)
+
+# f_filter = Filterloggera()
+
+# f_handler_msg = logging.Handler()
+# f_handler_msg.setLevel(logging.INFO)
+# f_handler_msg.addFilter(f_filter)
+# logger.addHandler(f_handler_msg)
+
+logger.debug('test debug')
+logger.info('test info')
+logger.warning('test warning')
+# logger_a.warning('test warning')
+
+

@@ -14,8 +14,12 @@ def Try_decorator(function):
     return wrapper
 
 def convertText(txt):
-    if txt.isdigit():
-        return int(txt)
+    try:
+        if txt.isdigit():
+            return int(txt)
+    except:
+        pass
+    return txt
 
 def deleteItemsOfLayout(layout):
      if layout is not None:

@@ -16,6 +16,14 @@ class Canvas(FigureCanvasQTAgg):
 
 
 class Layout_Parameters_Type(QWidget):
+    """Layout and interactivity of the setting of on graph. It enables the user to chose a type of graph and select the displayed channels
+
+    Args:
+        QWidget (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     signal_IndependantDataChecked = pyqtSignal(bool)
     selectedDataChanged = pyqtSignal()
 
@@ -34,18 +42,26 @@ class Layout_Parameters_Type(QWidget):
         self.dataIndependent = False
 
     def oc_selectData(self):
+        """Open a windows to select the channels to display.
+        """
         if self.selectDataWindow is None:
             self.selectDataWindow = WindowChannelSelection(self.parent)
             self.selectDataWindow.sendData.connect(self.save_selectedData)
         self.selectDataWindow.show()
 
     def save_selectedData(self,dictData):
-        print('save selection data')
+        """return a path of the selected Data
+
+        Args:
+            dictData (_type_): _description_
+        """
+        print('save selection data',dictData)
         # from dict Data to actual data
         loader = self.parent.get_currentLoader()
         self.selectedData = loader.get_DataFromDict(dictData)
+        self.selectDataPath = dictData
 
-        print('selected DATA',self.selectedData)
+        # print('selected DATA',self.selectedData)
         self.selectedDataChanged.emit()
         self.selectDataWindow.close()
 
@@ -55,6 +71,9 @@ class Layout_Parameters_Type(QWidget):
     
     def get_data(self):
         return self.selectedData
+    
+    def get_dataPath(self):
+        return self.selectDataPath
     
     def oc_groupBoxChecked(self,state):
         if state :
@@ -70,6 +89,8 @@ class Layout_Parameters_Type(QWidget):
 
 
 class OneGraph():
+    """It is the base structure of one plot, it comprises: the layout of the plot, the layout of the parameters.
+    """
     def __init__(self,frame_graph,layout_parameters,i,parent) -> None:
         """Creates an object that will manage the event of a box
 
@@ -86,6 +107,7 @@ class OneGraph():
         
         
         # Init layout of the parameters box
+        # create the combobox to choose the type of plot
         self.ui_parameters = Layout_Parameters_Type(self.parent)
         for fc in [None] + list(PLOT.keys()):
             self.ui_parameters.comboBox_type.addItem(fc)
@@ -93,12 +115,13 @@ class OneGraph():
         self.selectedData = None
 
         # Init layout of the graph box
+        # add a push button to select the graph and a layout where the graph can be placed
         self.layout_graph = QGridLayout()
-        self.b = QPushButton()
-        self.layout_graph.addWidget(self.b)
+        self.button = QPushButton()
+        self.layout_graph.addWidget(self.button)
         frame_graph.setLayout(self.layout_graph)
 
-        self.b.clicked.connect(self.oc_Buttonclick)
+        self.button.clicked.connect(self.oc_Buttonclick)
         self.ui_parameters.comboBox_type.currentIndexChanged.connect(self.oc_comboBox_type_change)
 
         # DATA, layout interactivity
@@ -107,8 +130,30 @@ class OneGraph():
         
 
     # TAB PARAMETERS
+    def add_paramUi_to_layout(self):
+        """Changes the Parameters tab of the graph, to display the setting of the selected graph
+        """
+        print('add layout ')
+        deleteItemsOfLayout(self.layout_parameters)
+        self.layout_parameters.addWidget(self.ui_parameters)
+        self.parent.tabWidget.setCurrentIndex(0)
+
+    def add_graphUi_to_layout(self):
+        """add a button and the layout of the future plot to the Graph box
+        """
+        deleteItemsOfLayout(self.layout_graph)
+        self.layout_graph.addWidget(self.button)
+        if self.ui_graph:
+            self.layout_graph.addWidget(self.ui_graph)
+
+    def add_setting_to_param(self):
+        """Add settings to the layout of the parameters layout
+        """
+        deleteItemsOfLayout(self.ui_parameters.layout_param)
+        self.ui_parameters.layout_param.addWidget(self.ui_graph.l)
+
     def oc_Buttonclick(self):
-        """Opens the menu of the current box
+        """Set or Opens the menu of the current box
         """
         self.add_paramUi_to_layout()
         self.parent.current_id = self.id
@@ -118,14 +163,18 @@ class OneGraph():
 
 
     def oc_comboBox_type_change(self):
-        """Changes the graph of the current box
+        """Changes the type of graph of the current box
         """
         type_ = self.ui_parameters.comboBox_type.currentText()
         if type_:
+            # add a plot to the layout of the graph layout 
             self.setPlot(PLOT[type_])
+            # add the setting of the plot to the graph setting
             self.add_graphUi_to_layout()
-            data = self.ui_graph.get_data()
-            self.ui_graph.draw(data)
+            # draw 
+            # data = self.ui_graph.get_data()
+            # self.ui_graph.draw(data)
+            self.update_drawing()
         else:
             self.ui_graph.clearGraph()
 
@@ -136,62 +185,42 @@ class OneGraph():
 
     # GRAPH
     def retrieve_Data(self):
-        print('retrieve_data')
         if not self.ui_parameters.isDataIndependent():
-            # retrieve data from the mainwindow
-            loader,path = self.ui_graph.get_dataPath()
-            print('retrive not independent data')
+            # retrieve data from the mainwindow throught the plot (the plot dictate the data it needs)
+            loader, path = self.ui_graph.get_dataPath()
+            print('In One Graph, retrived not independent data')
 
         else:
-            #retrieve data from the parameters
-            loader,path = self.ui_parameters.get_data()
-            print('retrive independent data')
+            #retrieve datapath from the parameters and the loader
+            loader = self.parent.get_currentLoader()
+            path = self.ui_parameters.get_dataPath()
+            print('In One Graph, retrived independent data')
 
-        print('retrieved dataaaa', loader,path)
+        print('In One Graph, the retrieved loader and data are : ', loader,path)
         return loader,path
     
     def update_drawing(self):
+
         if self.ui_graph:
             self.ui_graph.clearGraph()
             loader,path = self.retrieve_Data()
-            print('update drawing',loader,path)
 
-            #reset data actual loader
+            #reset data for processing with original data in the current loader
             self.parent.get_currentLoader().init_dataLoader(path)
             #apply global filters
             dictGlobalProcessing = self.parent.get_currentGlobalProcessingDict()
             apply_jsonFilterGlobal(loader,path,pathFile=None,dictFile=dictGlobalProcessing)
 
-            # transmit data to draw
+            # transmit data to draw in forms of a list of xarray
             data = []
             for gr in list(path.keys()):
                 for var in list(path[gr].keys()):
                     for dim in list(path[gr][var].keys()):
                         for ch in path[gr][var][dim]:
                             data.append(loader.getData(gr,var,dim,ch))
-            self.ui_graph.draw(data)
+            self.ui_graph.draw(data) # list of xarray
 
-    def add_paramUi_to_layout(self):
-        """Changes the settings of the graph
-        """
-        print('add layout ')
-        deleteItemsOfLayout(self.layout_parameters)
-        self.layout_parameters.addWidget(self.ui_parameters)
-        self.parent.tabWidget.setCurrentIndex(0)
-
-    def add_graphUi_to_layout(self):
-        """add a graph to the box
-        """
-        deleteItemsOfLayout(self.layout_graph)
-        self.layout_graph.addWidget(self.b)
-        if self.ui_graph:
-            self.layout_graph.addWidget(self.ui_graph)
-
-    def add_setting_to_param(self):
-        """Add settings to the parameters box
-        """
-        deleteItemsOfLayout(self.ui_parameters.layout_param)
-        self.ui_parameters.layout_param.addWidget(self.ui_graph.l)
+    
 
 
     def setPlot(self,plot):
@@ -224,10 +253,10 @@ class Layout(QWidget):
 class WindowChannelSelection(QWidget):
     sendData = pyqtSignal('PyQt_PyObject')
     
-    def __init__(self,p):
+    def __init__(self,parent):
         super().__init__()
         loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\Form_selection_channels.ui', self)
-        self.p = p
+        self.p = parent
         self.dictSelection = {}
 
         self.tree = QtWidgets.QTreeWidget()
@@ -311,7 +340,9 @@ class WindowChannelSelection(QWidget):
         return recurse(self.tree.invisibleRootItem())
 
     def oc_select(self):
-        dictData= self.get_selectedItems()
+        dictData = self.get_selectedItems()
+        print(f'In Multiple channel selection, the selected data are {dictData}')
+        # eg: {'/': {'Trigger': [], 'Accelerations': {'axes': ['Y']}, 'HDsEMG': {'Channel': ['6', '10', '11', '12']}}}
         self.sendData.emit(dictData)
 
 
