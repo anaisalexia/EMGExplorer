@@ -451,6 +451,7 @@ class GlobalProcessingTab(QWidget):
         self.globalProcessingTree.clear()
         self.globalProcessingDict = {}
 
+
     def oc_open(self):
         # get path
         path = QFileDialog.getOpenFileName(self, 'Open File',)
@@ -459,6 +460,7 @@ class GlobalProcessingTab(QWidget):
         #open filter
         print('path open is', path)
         self.loadJson(path[0])
+
 
     def loadJson(self,path):
         self.path = path

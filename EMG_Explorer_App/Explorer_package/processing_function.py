@@ -6,6 +6,8 @@ from .mainwindow_utils import get_item_from_path,Try_decorator
 ROOT = 'EMG_Explorer_App\Explorer_package\processing'
 ROOT_MEASUREMENT = 'EMG_Explorer_App\Explorer_package\summary_measurement'
 ROOT_DISPLAY = 'EMG_Explorer_App\Explorer_package\summary_display'
+ROOT_RANGEDISPLAY = 'EMG_Explorer_App\Explorer_package\summary_rangeDisplay'
+
 ROOT_GLOBALPROCESSING = 'EMG_Explorer_App\Explorer_package\global_processing_pipelines'
 
 def apply_jsonFilter(x,pathFile,dictFile=None):
@@ -154,6 +156,9 @@ PROCESSING_NAME = menu_from_dict(PROCESSING)
 
 MEASUREMENT = generate_processing_dict(ROOT_MEASUREMENT)
 DISPLAY = generate_processing_dict(ROOT_DISPLAY)
+RANGEDISPLAY = generate_processing_dict(ROOT_RANGEDISPLAY)
+
 MEASUREMENT_NAME = menu_from_dict(MEASUREMENT)
 DISPLAY_NAME = menu_from_dict(DISPLAY)
+RANGEDISPLAY_NAME = menu_from_dict(RANGEDISPLAY)
 

@@ -113,7 +113,7 @@ def walkDatatree_getPathDataset(node,path):
                 else:
                     dict_node[var] = {}
 
-            path[node.path] = dict_node
+            path[node.path if node.path!= None else 'Root'] = dict_node
             return path
         return path
                 
@@ -124,12 +124,24 @@ def walkDatatree_getPathDataset(node,path):
     return path
 
 
+def getAttrxArray(xar):
+    dict_var = {}
+    for var in xar.data_vars:
+        attrs = xar[var].attrs
+        if attrs != {}:
+            dict_var[var] = attrs
+    
+    return dict_var
+
+
 def walkDatatree_getAttrDataset(node):
     info = {}
     if node.is_leaf:
         if node.has_attrs:
             dict_node = node.attrs
-            
+            dict_var = getAttrxArray(node)
+            if dict_var != {}:
+                dict_node['Variables'] = dict_var
             info[node.name] = dict_node
             return info
         return info
@@ -140,6 +152,25 @@ def walkDatatree_getAttrDataset(node):
             info[ folder if folder != None else 'Root'] = walkDatatree_getAttrDataset(node[child])
     
     return info
+
+
+
+# def walkDatatree_getAttrDataset(node):
+#     info = {}
+#     if node.is_leaf:
+#         if node.has_attrs:
+#             dict_node = node.attrs
+            
+#             info[node.name] = dict_node
+#             return info
+#         return info
+                
+#     else: 
+#         for child in node.children:
+#             folder = node.name
+#             info[ folder if folder != None else 'Root'] = walkDatatree_getAttrDataset(node[child])
+    
+#     return info
 
 
 
@@ -189,6 +220,9 @@ class MyDataLoaderNC(MyDataLoader):
     # ATTRIBUTS
     def loadAttributs(self):
         self.attrs = walkDatatree_getAttrDataset(self.data)
+
+    def getAttrs(self):
+        return self.attrs
     
     def saveAttributs(self,attrs):
         """_summary_
@@ -201,10 +235,13 @@ class MyDataLoaderNC(MyDataLoader):
     def init_dataLoader(self,path):
         for gr in path.keys():
             for var in path[gr].keys():
-                for dim in path[gr][f'{var}'].keys():
-                    for ch in path[gr][f'{var}'][dim]:
-                        x = np.array(self.getDataOriginal(gr,var,dim,ch)   )             
-                        self.setData(gr,f'{var}',dim,ch,x)
+                try:
+                    for dim in path[gr][f'{var}'].keys() :
+                        for ch in path[gr][f'{var}'][dim]:
+                            x = np.array(self.getDataOriginal(gr,var,dim,ch)   )             
+                            self.setData(gr,f'{var}',dim,ch,x)
+                except:
+                    pass # no dim no data for the var
 
     def getPath(self):
         return self.path

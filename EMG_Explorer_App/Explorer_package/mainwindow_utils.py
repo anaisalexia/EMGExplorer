@@ -33,19 +33,34 @@ def deleteItemsOfLayout(layout):
 
 
 def walkDatatree_setAttrDataset(info,node):
+    # info is a dict/ a value that could be a dict, node is a treewidget
 
-    if type(list(info.values())[0]) == dict:
-        for name,child_dict in info.items():
+    for k,v in info.items():
+        #if v is a dictionnary
+        if type(v)==dict:
             child_node = QTreeWidgetItem(node)
-            child_node.setText(0, str(name))
-            walkDatatree_setAttrDataset(child_dict,child_node)
-                
-    else: 
-        for k,v in info.items():
+            child_node.setText(0, str(k))
+            walkDatatree_setAttrDataset(v,child_node)
+    
+        else:
             child_node = QTreeWidgetItem(node)            
             child_node.setText(0,str(k))
             child_node.setText(1,str(v))
-        return info
+            # return info
+
+
+    # if type(list(info.values())[0]) == dict:
+    #     for name,child_dict in info.items():
+    #         child_node = QTreeWidgetItem(node)
+    #         child_node.setText(0, str(name))
+    #         walkDatatree_setAttrDataset(child_dict,child_node)
+                
+    # else: 
+    #     for k,v in info.items():
+    #         child_node = QTreeWidgetItem(node)            
+    #         child_node.setText(0,str(k))
+    #         child_node.setText(1,str(v))
+    #     return info
         
     
     return info

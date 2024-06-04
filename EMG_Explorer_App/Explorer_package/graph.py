@@ -161,8 +161,10 @@ class PlotLine(pg.MultiPlotWidget):
     def __init__(self, layout, layout_graph, i, parent):
         PlotGeneral.__init__(self,layout, layout_graph, i, parent)
         pg.MultiPlotWidget.__init__(self)
-        
-        self.plot = self.addPlot(title=f'graph {self.id}')
+        pg.setConfigOption('background', 'w')
+        # pg.setConfigOption('foreground', (238, 238, 0))
+
+        self.plot = self.addPlot(title=f'{i}: Line Plot')
         self.l = LayoutParameters()
         self.function = 'lineplot'
         self.plotDataOriginal = None
@@ -182,8 +184,19 @@ class PlotLine(pg.MultiPlotWidget):
         """
         return self.parent.get_dataChannelPath()
 
+    def setInformation(self,**kwargs):
+        title = kwargs['title']
+        xlabel = kwargs['xlabel']
+        ylabel = kwargs['ylabel']
+        self.plot.setLabels(left=ylabel,bottom=xlabel)
+        self.plot.setLabel('top',f"<h3>{self.id}: {title}</h3>")
 
     def draw(self,data_list=None):
+        pen = pg.mkPen(color=(52, 138, 189), width=2)
+        pg.setConfigOption('foreground', 'k')
+        pg.setConfigOption('background', 'w')
+
+        
         print('draw plotline', data_list)
         if data_list:
             self.plotDataOriginal = data_list
@@ -203,7 +216,10 @@ class PlotLine(pg.MultiPlotWidget):
                 self.plotData = {'x':x,'y':y}
 
             self.applyFilter()
+            self.plot.plot(x=self.plotData['x'],y=self.plotData['y'],pen=pen)
             self.plot.enableAutoRange(True)
+            pg.setConfigOption('background', 'w')
+
 
 
 
@@ -225,17 +241,15 @@ class PlotLine(pg.MultiPlotWidget):
         print('apply filter :',self.currentPath)
 
         if self.currentPath[0] == 'None':
-            self.plot.plot(x=self.plotData['x'],y=self.plotData['y'])
-
+            pass
         else:
             if self.currentPath[0] == NAME_JSONFOLDER:
                 y = apply_jsonFilter(self.plotData['y'],self.currentPath[1])
-                self.plot.plot(x=self.plotData['x'],y=y)
+                self.plotData['y'] =y
 
             else:
                 func = get_item_from_path(PROCESSING,self.currentPath)
-                print('function from path', func)
-                self.plot.plot(x=self.plotData['x'],y=func(self.plotData['y']))
+                self.plotData['y']=func(self.plotData['y'])
 
 
 
@@ -327,6 +341,11 @@ class MultiplePlot(pg.MultiPlotWidget):
 
     def get_data(self):
         return self.parent.get_dataVariable()
+    
+    def setInformation(**kwargs):
+        title = kwargs['title']
+        xlabel = kwargs['xlabel']
+        ylabel = kwargs['ylabel']
 
     def draw(self,data):
         print('draw')

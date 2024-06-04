@@ -4,9 +4,53 @@ from .graph import create_menuJson
 from .mainwindow_utils import get_item_from_path,deleteItemsOfLayout
 from .loading_function import DATALOADER
 from . processing_function import dictOfFiles_from_EmbeddedFolders,ROOT_GLOBALPROCESSING,apply_jsonFilterGlobal
+from . processing_function import *
 
 
+def flatten(dictionary, parent_key=False, separator='.'):
+  
+    def isLeaf(items):
+        # is leaf if the value of the dictionnary is a simple dictionnary and has no embedded dicitonnary
+        if isinstance(items,dict):
+            for k,v in items.items():
+                if isinstance(v,dict):
+                    return False
+            return True
+        else:
+            return False
+    
+    def hasLeaf(items):
+        for k,v in items.items():
+            if not isinstance(v,dict):
+                return True
+        return False
+        
 
+    list_group = []
+
+    def recurse(attrs,key):
+        print(key)
+
+        if isLeaf(attrs):
+            list_group.append({key:attrs})
+        
+        elif hasLeaf(attrs):
+            new_attrs = {}
+            for k,v in attrs.items():
+                if not isinstance(v,dict):
+                    new_attrs[k] = v
+                else:
+                    recurse(v,key + "." + k)
+            list_group.append({key:new_attrs})
+                    
+        
+        else:
+            for k,v in attrs.items():
+                if isinstance(v,dict):
+                    recurse(v,str(key) + "." + str(k) if str(key) != "" else str(k))
+
+    recurse(dictionary,"")  
+    return list_group
         
 ROOT_REPORT = "EMG_Explorer_App/Explorer_package/global_processing_pipelines/"
 logger = logging.getLogger('main')
@@ -27,7 +71,8 @@ class SummaryElement(QWidget):
         self.information = {'Measure': [''],
                             'Range': 'channel',
                             'Display':[ ''],
-                            'Variables':''}
+                            'Variables':'',
+                            'RangeDisplay':['']}
         if information != None:
             self.information = information
 
@@ -47,19 +92,24 @@ class SummaryElement(QWidget):
 
         self.comboBox_measure = ComboBoxExpandable()
         self.comboBox_display = ComboBoxExpandable()
+        self.comboBox_rangedisplay = ComboBoxExpandable()
 
         self.comboBox_measure.setData(MEASUREMENT_NAME)
         self.comboBox_display.setData(DISPLAY_NAME)
+        self.comboBox_rangedisplay.setData(RANGEDISPLAY_NAME)
+
         self.comboBox_variables.addItems(self.variables)
 
         self.lcomboBox_measure.addWidget(self.comboBox_measure)
         self.lcomboBox_display.addWidget(self.comboBox_display)
+        self.lcomboBox_rangeDisplay.addWidget(self.comboBox_rangedisplay)
 
         self.init_information()
 
         self.comboBox_range.addItems(['channel','variable','variable-general','group'])    
         self.comboBox_measure.pathChanged.connect(lambda x: self.oc_comboBoxChanged(x,'Measure'))
         self.comboBox_display.pathChanged.connect(lambda x: self.oc_comboBoxChanged(x,'Display'))
+        self.comboBox_rangedisplay.pathChanged.connect(lambda x: self.oc_comboBoxChanged(x,'RangeDisplay'))
         self.comboBox_range.currentTextChanged.connect(lambda x: self.oc_comboBoxChanged(x,'Range'))
         self.comboBox_variables.currentTextChanged.connect(lambda x: self.oc_comboBoxChanged(x,'Variables'))
 
@@ -71,6 +121,8 @@ class SummaryElement(QWidget):
         self.comboBox_range.setCurrentText(self.information['Range'])
         self.comboBox_variables.setCurrentText(self.information['Variables'])
         self.comboBox_display.setText(self.information['Display'][-1])
+        self.comboBox_rangedisplay.setText(self.information['RangeDisplay'][-1])
+
 
     def oc_remove(self,action):
         print('EMIT REMOVE',self.position)
@@ -183,6 +235,9 @@ class SummaryWindow(QWidget):
         self.path_globalProcessing = listpath
         print('Processing chooose', listpath)
 
+    def  get_currentGlobalProcessingName(self):
+        return self.path_globalProcessing[-1]
+    
     def get_currentGlobalProcessingDict(self):
         if self.path_globalProcessing != ['None']:
             listpath = list(filter(lambda a: a != 'general', self.path_globalProcessing))
@@ -242,7 +297,7 @@ class SummaryWindow(QWidget):
         for i,element in self.dict_summaryElementsLayout.items():
             self.dict_summaryElement[i] = element.getInfo()
 
-        if (self.save_path == '') or (self.dict_summaryElement == {}):
+        if (self.save_path == '') :
             dlg = QtWidgets.QMessageBox.warning(self, '!','Missing Information')
 
         dict_generation = {
@@ -282,10 +337,52 @@ class SummaryWindow(QWidget):
             loader = DATALOADER[f'.{type_format}'](filepath,name)
             apply_jsonFilterGlobal(loader,pathData=loader.getGroup(), pathFile=None,dictFile=function_processing_dict)
 
+            ## SAVING ##
+            # for each var that is modified
+            # loader.save(path,variable,process)
+            if dict_generation['save processing']:
+                saving_path_prefix = 'data'
+                saving_name_suffix = 'filtered'
+                for variable,process in function_processing_dict.items():
+                    for group in loader.getListGroup():
+                        variable_newName_fc = lambda x : f"{variable}_{self.get_currentGlobalProcessingName()[:-5]}_{x}"
+                        variable_newName = variable_newName_fc(0)
+                        variable_newName_nb = 0
+
+                        # create a name for the new filtered variable : Variable_NameProcessing_Nb
+                        while variable_newName in loader.getListVariable():
+                            variable_newName_nb +=1
+                            variable_newName = variable_newName_fc(variable_newName_nb)
+
+                        # copy the processed data
+                        loader.data_original[group][variable_newName] = loader.data[group][variable].copy(deep=True)
+
+                        # add attributs to the new data
+                        loader.data_original[group][variable_newName] = loader.data_original[group][variable_newName].assign_attrs({'Processing':str(process)})
+                
+                saving_name_nb = 0
+                saving_path_fc = lambda x : f'{saving_path_prefix}\\{loader.getName().split('.')[0]}_{saving_name_suffix}_{x}.nc'
+                saving_path = saving_path_fc(saving_name_nb)
+                while(os.path.exists(saving_path)):
+                    saving_name_nb += 1
+                    saving_path = saving_path_fc(saving_name_nb)
+                    
+                try:
+                    loader.data_original.to_netcdf(saving_path, mode = 'w')
+                    logger.info(f'File Saved : {saving_path}')
+
+                except Exception as e:
+                    logger.error(f'File Saving Failed: {saving_path} {e}')
+
+
+
+            ## SUMMARY ##
+
             for element in self.dict_summaryElement.values():
                 displays += [f"<h4> {element}</h4> "]
                 function_measure = get_item_from_path(MEASUREMENT,element['Measure'])
                 function_display = get_item_from_path(DISPLAY,element['Display'])
+                function_rangeDisplay = get_item_from_path(RANGEDISPLAY, element['RangeDisplay'])
 
                 list_var = element['Variables']
                 # Measurement
@@ -300,11 +397,7 @@ class SummaryWindow(QWidget):
                         for dim in loader.getListDimension(group=gr,var=var):
                             for ch in loader.getListChannel(group=gr,var=var):
 
-                        # data_variable = loader.getDataVariable(gr,var)
-                        # dim = get_dim(list(data_variable.dims))
-                        # print('dims',dim)
-                        # if get_dim(list(data_variable.dims)) != None:
-                            # for ch in data_variable[get_dim(list(data_variable.dims))].values:
+                       
                                 print(ch)
                                 # np.array of the values
                                 data_channel = np.array(loader.getData(gr,var,dim,ch))
@@ -317,6 +410,7 @@ class SummaryWindow(QWidget):
                 df_element = pd.concat([df_element, pd.DataFrame(rows)])
 
                 # Range
+                all_range = ['Group','Var','Dim']
                 range_measure = element['Range']
                 df_range = None
                 if range_measure == 'channel':
@@ -330,50 +424,70 @@ class SummaryWindow(QWidget):
 
                 if df_range != None: 
                     df_element = df_element.groupby(df_range, group_keys=True)[['Value']].apply(lambda x : np.nanmean(x)).reset_index()
+                    df_element = df_element.rename(columns={0:"Value"})
+                    # add back the column
+                    if df_range != None:
+                        for column_removed in all_range:
+                            if column_removed not in df_range:
+                                df_element[column_removed] = np.zeros((1,df_element.shape[0]))
 
                 print('BEFORE DISPLAY', df_element)
-                # Display
+                # EXEMPLE Channel
+                #         Group      Var      Dim   Value
+                #     0     /  Accelerations   X  3.897428
+                #     1     /  Accelerations   Y  3.544009
+                #     2     /  Accelerations   Z  4.241707
+
+                # EXEMPLE variable
+                #           Group    Var     Dim     Value
+                #     0     /  Accelerations  0    3.894381
                 
                 # FAIRE DES DECORATEURS ET DES FONCTIONS QUI PRENNENT TOUT EN COMPTE
-                if range_measure == 'channel':
-                    print('channel range measure')
-                    for gr in  loader.getListGroup():
-                        print(gr)
-                        df_group = df_element.loc[df_element['Group']==gr,:]
-                        for var in [list_var] if list_var != 'All'  else loader.getListVariable():
-                            print(var)
-                            df_var = df_group.loc[df_group['Var']==var,:]
-                            # print('value for display',np.array(df_var['Value']))
-                            if np.array(df_var['Value']).shape[0] != 0:
-                                try:
-                                    display = function_display(np.array(df_var['Value']))
-                                    displays += [f'<p> {gr} {var} </p>',display]
-                                except Exception as e:
-                                    print(e)
-                                    pass
+                display = function_rangeDisplay(function_display,df_element)
+                # display = function_display(np.array(row['Value']))
+                displays += [f'<p> {gr} {var} </p>']
+                displays += display
 
-                elif range_measure == 'variable':
-                    print('variable range measure')
+                    
+                # if range_measure == 'channel':
+                #     print('channel range measure')
+                #     for gr in  loader.getListGroup():
+                #         print(gr)
+                #         df_group = df_element.loc[df_element['Group']==gr,:]
+                #         for var in [list_var] if list_var != 'All'  else loader.getListVariable():
+                #             print(var)
+                #             df_var = df_group.loc[df_group['Var']==var,:]
+                #             # print('value for display',np.array(df_var['Value']))
+                #             if np.array(df_var['Value']).shape[0] != 0:
+                #                 try:
+                #                     display = function_display(np.array(df_var['Value']))
+                #                     displays += [f'<p> {gr} {var} </p>',display]
+                #                 except Exception as e:
+                #                     print(e)
+                #                     pass
 
-                    for gr in loader.getListGroup():
-                        print(gr)
-                        df_group = df_element.loc[df_element['Group']==gr,:]
-                        for var in self.var_list if len(self.var_list) != 0 else loader.getListVariable():
-                            print(var)
-                            df_var = df_group.loc[df_group['Var']==var,:]
-                            # print('value for display',np.array(df_var['Value']))
-                            if np.array(df_var['Value']).shape[0] != 0:
-                                try:
-                                    display = function_display(np.array(df_var['Value']))
-                                    displays += [f'<p> {gr} {var} </p>',display]
-                                except Exception as e:
-                                    print(e)
-                                    pass
+                # elif range_measure == 'variable':
+                #     print('variable range measure')
 
-                elif range_measure == 'variable_general':
-                    pass
-                elif range_measure == 'group':
-                    pass
+                #     for gr in loader.getListGroup():
+                #         print(gr)
+                #         df_group = df_element.loc[df_element['Group']==gr,:]
+                #         for var in self.var_list if len(self.var_list) != 0 else loader.getListVariable():
+                #             print(var)
+                #             df_var = df_group.loc[df_group['Var']==var,:]
+                #             # print('value for display',np.array(df_var['Value']))
+                #             if np.array(df_var['Value']).shape[0] != 0:
+                #                 try:
+                #                     display = function_display(np.array(df_var['Value']))
+                #                     displays += [f'<p> {gr} {var} </p>',display]
+                #                 except Exception as e:
+                #                     print(e)
+                #                     pass
+
+                # elif range_measure == 'variable_general':
+                #     pass
+                # elif range_measure == 'group':
+                #     pass
                 
             # dict_generation = {
             # 'processing': self.processing,
@@ -382,15 +496,20 @@ class SummaryWindow(QWidget):
             # 'save processing':self.checkBox_saveProcessing.isChecked(),
             # 'summary elements':self.dict_summaryElement,
             # }
-            dict_file = dict_generation.copy()
-            dict_file.pop('file list')
-            data = {"data":dict_file,"fig":' '.join(displays)}
 
-            with open(output_html_path(name), "w", encoding="utf-8") as output_file:
-                with open(input_template_path) as template_file:
-                    # print('Template rendered', data)
-                    j2_template = Template(template_file.read())
-                    output_file.write(j2_template.render(data ))
+            if self.dict_summaryElement != {}:
+                dict_file = dict_generation.copy()
+                dict_file.pop('file list')
+                loader.loadAttributs()
+                param = flatten(loader.getAttrs())
+                logger.debug(param)
+                data = {"data":dict_file,"fig":' '.join(displays),"params":param}
+
+                with open(output_html_path(name), "w", encoding="utf-8") as output_file:
+                    with open(input_template_path) as template_file:
+                        # print('Template rendered', data)
+                        j2_template = Template(template_file.read())
+                        output_file.write(j2_template.render(data ))
 
     def update_variables(self):
         filepath = self.file_list[0]

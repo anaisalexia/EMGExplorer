@@ -73,6 +73,7 @@ class Layout_Parameters_Type(QWidget):
         return self.selectedData
     
     def get_dataPath(self):
+        print("get dat NOT INDEPENDANT", self.selectDataPath)
         return self.selectDataPath
     
     def oc_groupBoxChecked(self,state):
@@ -194,6 +195,7 @@ class OneGraph():
             #retrieve datapath from the parameters and the loader
             loader = self.parent.get_currentLoader()
             path = self.ui_parameters.get_dataPath()
+            # {'/': {'Trigger': [], 'Accelerations': {'axes': ['X']}, 'HDsEMG': {'Channel': []}}}  
             print('In One Graph, retrived independent data')
 
         print('In One Graph, the retrieved loader and data are : ', loader,path)
@@ -213,12 +215,18 @@ class OneGraph():
 
             # transmit data to draw in forms of a list of xarray
             data = []
+            title = ""
             for gr in list(path.keys()):
                 for var in list(path[gr].keys()):
+                    title += var + " "
                     for dim in list(path[gr][var].keys()):
                         for ch in path[gr][var][dim]:
+                            title += f" {ch} "
                             data.append(loader.getData(gr,var,dim,ch))
             self.ui_graph.draw(data) # list of xarray
+
+            dict_info = {'title':title,'xlabel':'time','ylabel':'Amplitude'}
+            self.ui_graph.setInformation(**dict_info)
 
     
 
@@ -274,19 +282,19 @@ class WindowChannelSelection(QWidget):
 
             for v in list(dict_group[gr].keys()):
                 item_var = QtWidgets.QTreeWidgetItem(item_group)
-                item_var.setFlags(item_var.flags() | Qt.ItemIsUserCheckable)
+                item_var.setFlags(item_var.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsTristate )
                 item_var.setText(0,str(v))
                 item_var.setCheckState(0, Qt.Unchecked)
 
                 for dim_name,ch in list(dict_group[gr][v].items()):
                     item_dim = QtWidgets.QTreeWidgetItem(item_var)
-                    item_dim.setFlags(item_dim.flags() | Qt.ItemIsUserCheckable)
+                    item_dim.setFlags(item_dim.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsTristate)
                     item_dim.setText(0,str(dim_name))
                     item_dim.setCheckState(0, Qt.Unchecked)
 
                     for c in ch:
                         item_ch = QtWidgets.QTreeWidgetItem(item_dim)
-                        item_ch.setFlags(item_ch.flags() | Qt.ItemIsUserCheckable)
+                        item_ch.setFlags(item_ch.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsTristate)
                         item_ch.setText(0,str(c))
                         item_ch.setCheckState(0, Qt.Unchecked)
 
@@ -312,32 +320,57 @@ class WindowChannelSelection(QWidget):
       
 
     def get_selectedItems(self): 
+        path = {}
+        loader = self.p.get_currentLoader()
+        dict_group = loader.getGroup()
 
-        def has_childLeaf(item):
-            nb_children = item.childCount()
-            for i in range(nb_children):
-                child = item.child(i)
-                nb_chil_children = child.childCount()
-                if nb_chil_children > 0:
-                    return False
-            return True
+        item = self.tree.invisibleRootItem()
+        for igr in range(item.childCount()):
+            itemGr = item.child(igr)
+            path[itemGr.text(0)] = {}
+
+            for ivar in range(itemGr.childCount()):
+                itemVar = itemGr.child(ivar)
+                path[itemGr.text(0)][itemVar.text(0)] = {}
+
+                for idim in range(itemVar.childCount()):
+                    itemdim = itemVar.child(idim)
+                    path[itemGr.text(0)][itemVar.text(0)][itemdim.text(0)] = []
+
+
+                    for ich in range(itemdim.childCount()):
+                        itemCh = itemdim.child(ich)
+
+                        if itemCh.checkState(0) == Qt.Checked :
+                            path[itemGr.text(0)][itemVar.text(0)][itemdim.text(0)].append(itemCh.text(0))
+
+
+        # def has_childLeaf(item):
+        #     nb_children = item.childCount()
+        #     for i in range(nb_children):
+        #         child = item.child(i)
+        #         nb_chil_children = child.childCount()
+        #         if nb_chil_children > 0:
+        #             return False
+        #     return True
                     
             
-        def recurse(item):
-                list_dict = {}
-                if has_childLeaf(item):
-                    list_checked = []
-                    for j in range(item.childCount()):
-                         if  item.child(j).checkState(0) == Qt.Checked :
-                            list_checked.append(item.child(j).text(0))
-                    return list_checked 
+        # def recurse(item):
+        #         list_dict = {}
+        #         if has_childLeaf(item):
+        #             list_checked = []
+        #             for j in range(item.childCount()):
+        #                  if  item.child(j).checkState(0) == Qt.Checked :
+        #                     list_checked.append(item.child(j).text(0))
+        #             return list_checked 
                     
-                else:
-                    for i in range (item.childCount()):
-                        list_dict[item.child(i).text(0)] = recurse(item.child(i))
-                return list_dict
+        #         else:
+        #             for i in range (item.childCount()):
+        #                 list_dict[item.child(i).text(0)] = recurse(item.child(i))
+        #         return list_dict
         
-        return recurse(self.tree.invisibleRootItem())
+        # return recurse(self.tree.invisibleRootItem())
+        return path
 
     def oc_select(self):
         dictData = self.get_selectedItems()

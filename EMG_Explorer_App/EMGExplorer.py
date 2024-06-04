@@ -6,13 +6,30 @@ import os
 from io import StringIO
 
 log_stream = StringIO() 
+now = datetime.now()
+                   
+# LOGGER
+logger = logging.getLogger('main')
+logging.basicConfig( format='%(name)s - %(levelname)s - %(message)s', level=logging.DEBUG) 
 
-
-logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.DEBUG) # File Handler
 # Stream handler
 streamHandler = logging.StreamHandler(log_stream)
-logger = logging.getLogger('main')
 logger.addHandler(streamHandler)
+
+# File Handler
+## Information
+# f = open(f"./log {str(now).replace(":","-")}.log", "x")
+# f.close()
+# loggerFile = logging.FileHandler(filename=f'./log {str(now).replace(":","-")}.log', mode = "w")
+# loggerFile.setLevel(logging.INFO)
+# logger.addHandler(loggerFile)
+
+## Debug
+if os.path.exists('logdebug.log') == False : f = open(f'./logdebug.log', "x");f.close()
+loggerDebugFile = logging.FileHandler(filename=f'log.log', mode = "w")
+loggerDebugFile.setLevel(logging.DEBUG)
+logger.addHandler(loggerDebugFile)
+
 
 class LogWindow(QWidget):
     PATH_LOG = 'app.log'
@@ -66,7 +83,7 @@ class EMGExplorer(QMainWindow):
                 QWidget.__init__(self)
 
             def emit(self, record):
-                if record.levelno == logging.INFO:
+                if record.levelno != logging.DEBUG:
                     print('output LOGGER',record.getMessage())
                     self.log_received.emit(record.getMessage())
 
@@ -138,6 +155,7 @@ class EMGExplorer(QMainWindow):
         self.interactivity_fileSystem()
 
         logger.info('Initialisation of the Interface finished')
+        logger.debug('Initialisation of the Interface finished DEBUG')
         self.show()
 
 
@@ -477,6 +495,7 @@ class EMGExplorer(QMainWindow):
         for loader in self.dataLoader.keys():
             self.listWidget_file.addItem(loader)
 
+
     
 
     # combobox file system update  
@@ -541,6 +560,7 @@ class EMGExplorer(QMainWindow):
     # file system interactivity
     def oc_ListWidget_change(self,item):    
         print('oc widget')    
+
         self.widget_globalProcessing.updateComboBox(self.get_currentLoader().getListVariable())
 
         last_selection = self.comboBox_group.currentText()
@@ -555,6 +575,7 @@ class EMGExplorer(QMainWindow):
         # load attrs
         loader = self.get_currentLoader()
         loader.loadAttributs()
+
 
         if loader.attrs:
             walkDatatree_setAttrDataset(loader.attrs,self.treeWidget)
