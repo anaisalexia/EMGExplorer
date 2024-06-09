@@ -164,7 +164,7 @@ class PlotLine(pg.MultiPlotWidget):
         pg.setConfigOption('background', 'w')
         # pg.setConfigOption('foreground', (238, 238, 0))
 
-        self.plot = self.addPlot(title=f'{i}: Line Plot')
+        self.plot = self.addPlot()
         self.l = LayoutParameters()
         self.function = 'lineplot'
         self.plotDataOriginal = None
@@ -189,15 +189,11 @@ class PlotLine(pg.MultiPlotWidget):
         xlabel = kwargs['xlabel']
         ylabel = kwargs['ylabel']
         self.plot.setLabels(left=ylabel,bottom=xlabel)
-        self.plot.setLabel('top',f"<h3>{self.id}: {title}</h3>")
+        self.plot.setLabel('top',f"<h4>{self.id}: {title}</h4>")
 
     def draw(self,data_list=None):
         pen = pg.mkPen(color=(52, 138, 189), width=2)
-        pg.setConfigOption('foreground', 'k')
-        pg.setConfigOption('background', 'w')
-
         
-        print('draw plotline', data_list)
         if data_list:
             self.plotDataOriginal = data_list
 
@@ -238,8 +234,6 @@ class PlotLine(pg.MultiPlotWidget):
         self.draw()
 
     def applyFilter(self):
-        print('apply filter :',self.currentPath)
-
         if self.currentPath[0] == 'None':
             pass
         else:
@@ -279,6 +273,8 @@ class FFT(pg.MultiPlotWidget):
         return self.parent.get_dataChannelPath()
 
     def draw(self,data_list):
+        pen = pg.mkPen(color=(52, 138, 189), width=2)
+
         for data in data_list:
             y = data.values
 
@@ -286,7 +282,7 @@ class FFT(pg.MultiPlotWidget):
                 if t in data.dims:
                     x = np.array(data[t])
 
-            self.plot.plot(x=x,y=y)
+            self.plot.plot(x=x,y=y,pen=pen)
 
             # self.fftplot.setMouseEnabled(x=True, y=False)
             self.plot.showGrid(x=True)
@@ -487,6 +483,7 @@ class MultiplePlot2(pg.MultiPlotWidget):
 
     @Try_decorator
     def draw(self,data,distance=None,timestamp=False):
+        pen = pg.mkPen(color=(52, 138, 189), width=2)
         self.clearGraph()
         print('draw')
         self.data_plot = data
@@ -520,7 +517,7 @@ class MultiplePlot2(pg.MultiPlotWidget):
             else:
                 x= np.arange(0,len(y))
 
-            self.line[i] = self.plot[i//nb_line].plot(x=x,y=y)
+            self.line[i] = self.plot[i//nb_line].plot(x=x,y=y,pen=pen)
             self.plot[i//nb_line].addItem(self.line[i])
             self.plot[i//nb_line].enableAutoRange(True)
             self.plot[i//nb_line].enableAutoRange(True)

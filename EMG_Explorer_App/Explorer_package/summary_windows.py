@@ -297,7 +297,7 @@ class SummaryWindow(QWidget):
         for i,element in self.dict_summaryElementsLayout.items():
             self.dict_summaryElement[i] = element.getInfo()
 
-        if (self.save_path == '') :
+        if ((self.checkBox_saveProcessing.isChecked()) and (self.save_path == '')) :
             dlg = QtWidgets.QMessageBox.warning(self, '!','Missing Information')
 
         dict_generation = {
@@ -318,7 +318,6 @@ class SummaryWindow(QWidget):
         # plotly_jinja_data = fig.to_html(full_html=False)
         # #consider also defining the include_plotlyjs parameter to point to an external Plotly.js as described above
 
-        info = "<p> Other paragraph.</p> "
 
         displays = []
 
@@ -328,188 +327,173 @@ class SummaryWindow(QWidget):
 
         # For each file: generate a summary
         for filepath in self.file_list:
-            displays = []
+            try:
+                displays = []
 
-            displays += [f"<h4> {filepath}</h4> "]
-            # retrieve loader
-            name = os.path.split(filepath)[-1]
-            type_format = name.split('.')[-1]
-            loader = DATALOADER[f'.{type_format}'](filepath,name)
-            apply_jsonFilterGlobal(loader,pathData=loader.getGroup(), pathFile=None,dictFile=function_processing_dict)
-
-            ## SAVING ##
-            # for each var that is modified
-            # loader.save(path,variable,process)
-            if dict_generation['save processing']:
-                saving_path_prefix = 'data'
-                saving_name_suffix = 'filtered'
-                for variable,process in function_processing_dict.items():
-                    for group in loader.getListGroup():
-                        variable_newName_fc = lambda x : f"{variable}_{self.get_currentGlobalProcessingName()[:-5]}_{x}"
-                        variable_newName = variable_newName_fc(0)
-                        variable_newName_nb = 0
-
-                        # create a name for the new filtered variable : Variable_NameProcessing_Nb
-                        while variable_newName in loader.getListVariable():
-                            variable_newName_nb +=1
-                            variable_newName = variable_newName_fc(variable_newName_nb)
-
-                        # copy the processed data
-                        loader.data_original[group][variable_newName] = loader.data[group][variable].copy(deep=True)
-
-                        # add attributs to the new data
-                        loader.data_original[group][variable_newName] = loader.data_original[group][variable_newName].assign_attrs({'Processing':str(process)})
-                
-                saving_name_nb = 0
-                saving_path_fc = lambda x : f'{saving_path_prefix}\\{loader.getName().split('.')[0]}_{saving_name_suffix}_{x}.nc'
-                saving_path = saving_path_fc(saving_name_nb)
-                while(os.path.exists(saving_path)):
-                    saving_name_nb += 1
-                    saving_path = saving_path_fc(saving_name_nb)
-                    
+                displays += [f"<h4> {filepath}</h4> "]
+                # retrieve loader
+                name = os.path.split(filepath)[-1]
+                type_format = name.split('.')[-1]
+                loader = DATALOADER[f'.{type_format}'](filepath,name)
                 try:
-                    loader.data_original.to_netcdf(saving_path, mode = 'w')
-                    logger.info(f'File Saved : {saving_path}')
-
+                    apply_jsonFilterGlobal(loader,pathData=loader.getGroup(), pathFile=None,dictFile=function_processing_dict)
                 except Exception as e:
-                    logger.error(f'File Saving Failed: {saving_path} {e}')
+                    logger.error(f'Summary - Filters could not be applied to file {filepath}: {e}')
 
 
+                ## SAVING ##
+                # for each var that is modified
+                # loader.save(path,variable,process)
+                try:
+                    if dict_generation['save processing']:
+                        saving_path_prefix = self.save_path
+                        print('path save', self.save_path)
+                        saving_name_suffix = 'filtered'
+                        for variable,process in function_processing_dict.items():
+                            for group in loader.getListGroup():
+                                variable_newName_fc = lambda x : f"{variable}_{self.get_currentGlobalProcessingName()[:-5]}_{x}"
+                                variable_newName = variable_newName_fc(0)
+                                variable_newName_nb = 0
 
-            ## SUMMARY ##
+                                # create a name for the new filtered variable : Variable_NameProcessing_Nb
+                                while variable_newName in loader.getListVariable():
+                                    variable_newName_nb +=1
+                                    variable_newName = variable_newName_fc(variable_newName_nb)
 
-            for element in self.dict_summaryElement.values():
-                displays += [f"<h4> {element}</h4> "]
-                function_measure = get_item_from_path(MEASUREMENT,element['Measure'])
-                function_display = get_item_from_path(DISPLAY,element['Display'])
-                function_rangeDisplay = get_item_from_path(RANGEDISPLAY, element['RangeDisplay'])
+                                # copy the processed data
+                                loader.setToDataOriginal(group, variable_newName,variable)
+                                # loader.data_original[group][variable_newName] = loader.data[group][variable].copy(deep=True)
 
-                list_var = element['Variables']
-                # Measurement
-                df_element = pd.DataFrame(None,columns=['Group','Var','Dim','Value'])
-                rows = []
-        
+                                # add attributs to the new data
+                                loader.setAttrs(group,variable_newName,process)
+                                # loader.data_original[group][variable_newName] = loader.data_original[group][variable_newName].assign_attrs({'Processing':str(process)})
+                        
+                        saving_name_nb = 0
+                        saving_path_fc = lambda x : f'{saving_path_prefix}\\{loader.getName().split('.')[0]}_{saving_name_suffix}_{x}.nc'
+                        saving_path = saving_path_fc(saving_name_nb)
 
-                for gr in loader.getListGroup():
-                    print('group',gr)
-                    for var in [list_var] if list_var != 'All' else loader.getListVariable():
-                        print('var',var)
-                        for dim in loader.getListDimension(group=gr,var=var):
-                            for ch in loader.getListChannel(group=gr,var=var):
+                        while(os.path.exists(saving_path)):
+                            saving_name_nb += 1
+                            saving_path = saving_path_fc(saving_name_nb)
+                            
+                        try:
+                            loader.data_original.to_netcdf(saving_path, mode = 'w')
+                            logger.info(f'File Saved : {saving_path}')
 
-                       
-                                print(ch)
-                                # np.array of the values
-                                data_channel = np.array(loader.getData(gr,var,dim,ch))
-                                result_measure_ch = function_measure(data_channel)
-                                row = dict(zip(['Group','Var','Dim','Value'],
-                                    [gr,var,ch,result_measure_ch]))
-                                print(row)
-                                rows.append(row)
-
-                df_element = pd.concat([df_element, pd.DataFrame(rows)])
-
-                # Range
-                all_range = ['Group','Var','Dim']
-                range_measure = element['Range']
-                df_range = None
-                if range_measure == 'channel':
-                    pass
-                elif range_measure == 'variable':
-                    df_range = ['Group','Var']
-                elif range_measure == 'variable_general':
-                    df_range = ['Var']
-                elif range_measure == 'group':
-                    df_range = ['Group']
-
-                if df_range != None: 
-                    df_element = df_element.groupby(df_range, group_keys=True)[['Value']].apply(lambda x : np.nanmean(x)).reset_index()
-                    df_element = df_element.rename(columns={0:"Value"})
-                    # add back the column
-                    if df_range != None:
-                        for column_removed in all_range:
-                            if column_removed not in df_range:
-                                df_element[column_removed] = np.zeros((1,df_element.shape[0]))
-
-                print('BEFORE DISPLAY', df_element)
-                # EXEMPLE Channel
-                #         Group      Var      Dim   Value
-                #     0     /  Accelerations   X  3.897428
-                #     1     /  Accelerations   Y  3.544009
-                #     2     /  Accelerations   Z  4.241707
-
-                # EXEMPLE variable
-                #           Group    Var     Dim     Value
-                #     0     /  Accelerations  0    3.894381
+                        except Exception as e:
+                            logger.warning(f'Summary - File Saving Failed: {saving_path} {e}')
                 
-                # FAIRE DES DECORATEURS ET DES FONCTIONS QUI PRENNENT TOUT EN COMPTE
-                display = function_rangeDisplay(function_display,df_element)
-                # display = function_display(np.array(row['Value']))
-                displays += [f'<p> {gr} {var} </p>']
-                displays += display
+                except Exception as e:
+                    logger.warning(f'An error occured during saving file {saving_path} : {e}')
 
+
+
+                ## SUMMARY ##
+
+                for element in self.dict_summaryElement.values():
+                    displays += [f"<h4> {element}</h4> "]
+                    function_measure = get_item_from_path(MEASUREMENT,element['Measure'])
+                    function_display = get_item_from_path(DISPLAY,element['Display'])
+                    function_rangeDisplay = get_item_from_path(RANGEDISPLAY, element['RangeDisplay'])
+
+                    list_var = element['Variables']
+                    # Measurement
+                    df_element = pd.DataFrame(None,columns=['Group','Var','Dim','Value'])
+                    rows = []
+            
+
+                    for gr in loader.getListGroup():
+                        for var in [list_var] if list_var != 'All' else loader.getListVariable():
+                            for dim in loader.getListDimension(group=gr,var=var):
+                                for ch in loader.getListChannel(group=gr,var=var):
+
+                                    try:
+                                        data_channel = np.array(loader.getData(gr,var,dim,ch))
+                                        result_measure_ch = function_measure(data_channel)
+                                        row = dict(zip(['Group','Var','Dim','Value'],
+                                            [gr,var,ch,result_measure_ch]))
+
+                                        rows.append(row)
+
+                                    except Exception as e:
+                                        logger.error(f"Summary - Measurement {function_measure.__name__} could no be computed for {gr} {var} {dim} {ch}: {e}")
+                                        row = dict(zip(['Group','Var','Dim','Value'], [gr,var,ch,np.NAN]))
+                                        rows.append(row)
+
+
+
+                    df_element = pd.concat([df_element, pd.DataFrame(rows)])
+
+                    # Range
+                    all_range = ['Group','Var','Dim']
+                    range_measure = element['Range']
+                    df_range = None
+                    if range_measure == 'channel':
+                        pass
+                    elif range_measure == 'variable':
+                        df_range = ['Group','Var']
+                    elif range_measure == 'variable_general':
+                        df_range = ['Var']
+                    elif range_measure == 'group':
+                        df_range = ['Group']
+
+                    try:
+                        if df_range != None: 
+                            df_element = df_element.groupby(df_range, group_keys=True)[['Value']].apply(lambda x : np.nanmean(x)).reset_index()
+                            df_element = df_element.rename(columns={0:"Value"})
+                            # add back the column
+                            if df_range != None:
+                                for column_removed in all_range:
+                                    if column_removed not in df_range:
+                                        df_element[column_removed] = np.zeros((1,df_element.shape[0]))
+                    except Exception as e:
+                        logger.error(f"Summary - Range {df_range} could no be computed : {e}")
+                        displays += ["Error while averaging tge metrics"]
+                        continue
+
+                    # EXEMPLE Channel
+                    #         Group      Var      Dim   Value
+                    #     0     /  Accelerations   X  3.897428
+                    #     1     /  Accelerations   Y  3.544009
+                    #     2     /  Accelerations   Z  4.241707
+
+                    # EXEMPLE variable
+                    #           Group    Var     Dim     Value
+                    #     0     /  Accelerations  0    3.894381
                     
-                # if range_measure == 'channel':
-                #     print('channel range measure')
-                #     for gr in  loader.getListGroup():
-                #         print(gr)
-                #         df_group = df_element.loc[df_element['Group']==gr,:]
-                #         for var in [list_var] if list_var != 'All'  else loader.getListVariable():
-                #             print(var)
-                #             df_var = df_group.loc[df_group['Var']==var,:]
-                #             # print('value for display',np.array(df_var['Value']))
-                #             if np.array(df_var['Value']).shape[0] != 0:
-                #                 try:
-                #                     display = function_display(np.array(df_var['Value']))
-                #                     displays += [f'<p> {gr} {var} </p>',display]
-                #                 except Exception as e:
-                #                     print(e)
-                #                     pass
 
-                # elif range_measure == 'variable':
-                #     print('variable range measure')
+                    try:
+                        display = function_rangeDisplay(function_display,df_element)
+                        # display = function_display(np.array(row['Value']))
+                        displays += [f'<p> {gr} {var} </p>']
+                        displays += display
+                    except Exception as e:
+                        logger.error(f"Summary - Display {function_display.__name__} could no be computed : {e}")
+                        displays += ["Error while rendering the display"]
+                        continue
 
-                #     for gr in loader.getListGroup():
-                #         print(gr)
-                #         df_group = df_element.loc[df_element['Group']==gr,:]
-                #         for var in self.var_list if len(self.var_list) != 0 else loader.getListVariable():
-                #             print(var)
-                #             df_var = df_group.loc[df_group['Var']==var,:]
-                #             # print('value for display',np.array(df_var['Value']))
-                #             if np.array(df_var['Value']).shape[0] != 0:
-                #                 try:
-                #                     display = function_display(np.array(df_var['Value']))
-                #                     displays += [f'<p> {gr} {var} </p>',display]
-                #                 except Exception as e:
-                #                     print(e)
-                #                     pass
 
-                # elif range_measure == 'variable_general':
-                #     pass
-                # elif range_measure == 'group':
-                #     pass
+
                 
-            # dict_generation = {
-            # 'processing': self.processing,
-            # 'file list':self.file_list,
-            # 'path save':self.save_path,
-            # 'save processing':self.checkBox_saveProcessing.isChecked(),
-            # 'summary elements':self.dict_summaryElement,
-            # }
 
-            if self.dict_summaryElement != {}:
-                dict_file = dict_generation.copy()
-                dict_file.pop('file list')
-                loader.loadAttributs()
-                param = flatten(loader.getAttrs())
-                logger.debug(param)
-                data = {"data":dict_file,"fig":' '.join(displays),"params":param}
+                if self.dict_summaryElement != {}:
+                    dict_file = dict_generation.copy()
+                    dict_file.pop('file list')
+                    loader.loadAttributs()
+                    param = flatten(loader.getAttrs())
+                    logger.debug(param)
+                    data = {"data":dict_file,"fig":' '.join(displays),"params":param}
 
-                with open(output_html_path(name), "w", encoding="utf-8") as output_file:
-                    with open(input_template_path) as template_file:
-                        # print('Template rendered', data)
-                        j2_template = Template(template_file.read())
-                        output_file.write(j2_template.render(data ))
+                    with open(output_html_path(name), "w", encoding="utf-8") as output_file:
+                        with open(input_template_path) as template_file:
+                            # print('Template rendered', data)
+                            j2_template = Template(template_file.read())
+                            output_file.write(j2_template.render(data ))
+            
+            except Exception as e:
+                logger.warning(f"Summary - An error occured during Summary generation of {filepath} : {e}")
+    
+
 
     def update_variables(self):
         filepath = self.file_list[0]

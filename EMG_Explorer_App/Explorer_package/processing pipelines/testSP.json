@@ -1,0 +1,1 @@
+{"0": {"name": "butterfilter", "path": ["processing_function_perso"], "arguments": {"emg": null, "order": 2, "c_f": 10, "type": "lowpass", "s_f": 1000}}, "1": {"name": "butterfilter_bandpass", "path": ["processing_function_perso"], "arguments": {"emg": null, "order": 2, "c_f_low": 60, "c_f_high": 5, "s_f": 1000}}}

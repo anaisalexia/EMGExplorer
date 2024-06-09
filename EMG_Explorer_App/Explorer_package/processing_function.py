@@ -1,7 +1,7 @@
 from importlib.machinery import SourceFileLoader
 import os
 from .setup import *
-from .mainwindow_utils import get_item_from_path,Try_decorator
+from .mainwindow_utils import get_item_from_path,Try_decorator,LoggerError_decorator
 
 ROOT = 'EMG_Explorer_App\Explorer_package\processing'
 ROOT_MEASUREMENT = 'EMG_Explorer_App\Explorer_package\summary_measurement'
@@ -9,12 +9,13 @@ ROOT_DISPLAY = 'EMG_Explorer_App\Explorer_package\summary_display'
 ROOT_RANGEDISPLAY = 'EMG_Explorer_App\Explorer_package\summary_rangeDisplay'
 
 ROOT_GLOBALPROCESSING = 'EMG_Explorer_App\Explorer_package\global_processing_pipelines'
+logger = logging.getLogger('main')
 
+@LoggerError_decorator
 def apply_jsonFilter(x,pathFile,dictFile=None):
-    if pathFile == None:
+    if pathFile != None:
         f = open(f'{PATH_PIPELINE}{pathFile}.json')
         data = json.load(f)
-        print('in apply json filter',pathFile,data)
     else:
         data = dictFile
 
@@ -28,12 +29,12 @@ def apply_jsonFilter(x,pathFile,dictFile=None):
 
     return x  
 
-@Try_decorator
+@LoggerError_decorator
 def apply_jsonFilterGlobal(loader,pathData,pathFile=None,dictFile=None):
     if pathFile != None:
         f = open(f'{PATH_PIPELINE}{pathFile}.json')
         processDict = json.load(f)
-        print('in apply json filter',pathFile,processDict)
+
     else:
         processDict = dictFile
 
@@ -45,10 +46,8 @@ def apply_jsonFilterGlobal(loader,pathData,pathFile=None,dictFile=None):
                 processVar = processDict[var]
 
                 for nb,process in processVar.items():
-                    print(process)
                     func = PROCESSING[process['path'][0]][process['name']]
                     arg = process['arguments']
-                    print('list arg', arg)
                     arg_copy = arg.copy()
                     for k,v in arg_copy.items():
                         if v == None:
@@ -58,7 +57,7 @@ def apply_jsonFilterGlobal(loader,pathData,pathFile=None,dictFile=None):
                     func(**arg) 
 
             except Exception as e:
-                print('NO PROCESS FOR VAR:', var,e)
+                logger.error(f"Application Global Filter - Processing of var {var} failed : {e}")
 
 
 

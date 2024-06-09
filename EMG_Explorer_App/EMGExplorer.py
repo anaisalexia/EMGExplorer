@@ -17,22 +17,26 @@ streamHandler = logging.StreamHandler(log_stream)
 logger.addHandler(streamHandler)
 
 # File Handler
-## Information
-# f = open(f"./log {str(now).replace(":","-")}.log", "x")
-# f.close()
-# loggerFile = logging.FileHandler(filename=f'./log {str(now).replace(":","-")}.log', mode = "w")
-# loggerFile.setLevel(logging.INFO)
-# logger.addHandler(loggerFile)
+# Information
+CURRENT_PATH_LOG_INFO = f"{PAHT_LOG}log {str(now).replace(":","-")}.log"
+f = open(CURRENT_PATH_LOG_INFO, "x")
+f.close()
+loggerFile = logging.FileHandler(filename=f'./log {str(now).replace(":","-")}.log', mode = "w")
+loggerFile.setLevel(logging.INFO)
+logger.addHandler(loggerFile)
 
 ## Debug
-if os.path.exists('logdebug.log') == False : f = open(f'./logdebug.log', "x");f.close()
-loggerDebugFile = logging.FileHandler(filename=f'log.log', mode = "w")
+CURRENT_PATH_LOG_DEBUG = f'./logdebug.log'
+if os.path.exists(CURRENT_PATH_LOG_DEBUG) == False : f = open(CURRENT_PATH_LOG_DEBUG, "x");f.close()
+loggerDebugFile = logging.FileHandler(filename=CURRENT_PATH_LOG_DEBUG, mode = "w")
 loggerDebugFile.setLevel(logging.DEBUG)
 logger.addHandler(loggerDebugFile)
 
 
+pg.setConfigOption('foreground', 'k')
+pg.setConfigOption('background', 'w')
+
 class LogWindow(QWidget):
-    PATH_LOG = 'app.log'
     def __init__(self):
         super().__init__()
         # Loading of the UI
@@ -57,7 +61,7 @@ class LogWindow(QWidget):
     
     def update_log(self,arg=None):
         if self.bool_logInfo:
-            f  = open(self.PATH_LOG, "r")
+            f  = open(CURRENT_PATH_LOG_INFO, "r")
             self.label_wholeLog.setText(log_stream.getvalue())
         
 
@@ -84,7 +88,6 @@ class EMGExplorer(QMainWindow):
 
             def emit(self, record):
                 if record.levelno != logging.DEBUG:
-                    print('output LOGGER',record.getMessage())
                     self.log_received.emit(record.getMessage())
 
         warning_handler = OutputHandler()
@@ -114,6 +117,7 @@ class EMGExplorer(QMainWindow):
         self.actionNew.triggered.connect(self.oc_newFilter)
         self.actionRun_Analysis.triggered.connect(self.oc_newSummary)
         self.actionLoad.triggered.connect(self.oc_load_files)
+        self.actionRemove.triggered.connect(self.oc_remove_files)
 
         self.action4_windows.triggered.connect(partial(self.oc_update_layout_graph,4,1))
         self.action3_windows.triggered.connect(partial(self.oc_update_layout_graph,3,1))
@@ -134,18 +138,26 @@ class EMGExplorer(QMainWindow):
         # SETTINGS INIT
         # self.setting = {0:OneSetting(None,'Custom parameter')}
         
-        self.paramtree = Filters(None)
-        self.layout_setting.addWidget(self.paramtree.tree)
-        self.button_openJson.clicked.connect(self.oc_openFilter)
-        self.button_clearFilter.clicked.connect(self.paramtree.clearTree)
 
-        self.comboExpandable = ComboBoxExpandable()
-        self.comboExpandable.setData(PROCESSING_NAME)
-        self.layout_expComboBox.addWidget(self.comboExpandable)
+        # self.paramtree = Filters(None)
+        # self.layout_setting.addWidget(self.paramtree.tree)
+        # self.button_openJson.clicked.connect(self.oc_openFilter)
+        # self.button_clearFilter.clicked.connect(self.paramtree.clearTree)
 
-        self.comboExpandable.pathChanged.connect(self.oc_add_filter)
-        self.button_saveFilter.clicked.connect(self.oc_saveFilter)
+        # self.comboExpandable = ComboBoxExpandable()
+        # self.comboExpandable.setData(PROCESSING_NAME)
+        # self.layout_expComboBox.addWidget(self.comboExpandable)
 
+        # self.comboExpandable.pathChanged.connect(self.oc_add_filter)
+        # self.button_saveFilter.clicked.connect(self.oc_saveFilter)
+
+        # Initialization Single Processing window
+        self.widget_singleProcessing = SingleProcessing(self)
+        self.layout_singleProcessing.addWidget(self.widget_singleProcessing)
+        # self.widget_singleProcessing.processingSaved.connect(self.update_comboBoxGlobalProcessing)
+
+
+        # Initialization Global Processing window
         self.widget_globalProcessing = GlobalProcessingTab(self)
         self.layout_globaProcessing.addWidget(self.widget_globalProcessing)
         self.widget_globalProcessing.processingSaved.connect(self.update_comboBoxGlobalProcessing)
@@ -155,13 +167,11 @@ class EMGExplorer(QMainWindow):
         self.interactivity_fileSystem()
 
         logger.info('Initialisation of the Interface finished')
-        logger.debug('Initialisation of the Interface finished DEBUG')
         self.show()
 
 
     #### Global processing ####
     def init_comboBoxGlobalProcessing(self):
-        print('ComboBox GlobalProcessing init')
         self.comboBoxGlobalProcessing = ComboBoxExpandable()
         self.update_comboBoxGlobalProcessing()
         self.lcomboBox_globalProcessing.addWidget(self.comboBoxGlobalProcessing)
@@ -174,10 +184,11 @@ class EMGExplorer(QMainWindow):
             print(lastSelection)
             self.comboBoxGlobalProcessing.setText(lastSelection)
 
-        print('ComboBox GlobalProcessing update')
         menuJson = dictOfFiles_from_EmbeddedFolders(ROOT_GLOBALPROCESSING)
         self.comboBoxGlobalProcessing.setData(menuJson)
         self.comboBoxGlobalProcessing.append_element(['None'],self.comboBoxGlobalProcessing.menu())
+
+    
 
     def update_pathGlobalProcessing(self,listpath:list):
         self.path_globalProcessing = listpath
@@ -186,7 +197,6 @@ class EMGExplorer(QMainWindow):
         if self.path_globalProcessing != ['None']:
             listpath = list(filter(lambda a: a != 'general', self.path_globalProcessing))
             f = open(f'{ROOT_GLOBALPROCESSING}/{"/".join(listpath)}')
-            print('get global processing dict', f)
             data = json.load(f)
             return data
         else:
@@ -198,39 +208,37 @@ class EMGExplorer(QMainWindow):
 
 
     #### Local Processing ####
-    def oc_openFilter(self):
-        # get path
-        path = QFileDialog.getOpenFileName(self, 'Open File',)
-                                       #"/home/jana/untitled.png",
-                                    #    "Json (*.json)")
-        #open filter
-        print('path open is', path)
-        self.paramtree.LoadJson(path[0])
+    # def oc_openFilter(self):
+    #     # get path
+    #     path = QFileDialog.getOpenFileName(self, 'Open File',)
+    #                                    #"/home/jana/untitled.png",
+    #                                 #    "Json (*.json)")
+    #     #open filter
+    #     print('path open is', path)
+    #     self.paramtree.LoadJson(path[0])
 
-    def oc_clearFilter(self):
-        self.paramtree.clearTree()
+    # def oc_clearFilter(self):
+    #     self.paramtree.clearTree()
 
 
-    def oc_add_filter(self,path):
-        """add a filter to the pipeline
+    # def oc_add_filter(self,path):
+    #     """add a filter to the pipeline
 
-        Args:
-            path (str): path to the clicked section of the menu. eg ['group 1','name']
-        """
-        print(path)
-        print(get_item_from_path(PROCESSING,path))
-        self.paramtree.addNew(get_item_from_path(PROCESSING,path),path )
+    #     Args:
+    #         path (str): path to the clicked section of the menu. eg ['group 1','name']
+    #     """
+    #     self.paramtree.addNew(get_item_from_path(PROCESSING,path),path )
 
-    def oc_saveFilter(self):
-        dictjson = self.paramtree.setting_to_json()
-        namepath = QFileDialog.getSaveFileName(self, 'Save File',
-                                       #"/home/jana/untitled.png",
-                                       "Json (*.json)")
-        if os.path.exists(f'{namepath[0]}.json'):
-            print('the file exist already')
-        else:
-            with open(f'{namepath[0]}.json', 'w') as f:
-                json.dump(dictjson, f)
+    # def oc_saveFilter(self):
+    #     dictjson = self.paramtree.setting_to_json()
+    #     namepath = QFileDialog.getSaveFileName(self, 'Save File',
+    #                                    #"/home/jana/untitled.png",
+    #                                    "Json (*.json)")
+    #     if os.path.exists(f'{namepath[0]}.json'):
+    #         print('the file exist already')
+    #     else:
+    #         with open(f'{namepath[0]}.json', 'w') as f:
+    #             json.dump(dictjson, f)
     #### end Local Processing ####
 
 
@@ -496,6 +504,10 @@ class EMGExplorer(QMainWindow):
             self.listWidget_file.addItem(loader)
 
 
+    def oc_remove_files(self):
+        self.listWidget_file.clear()
+        self.dataLoader = {}
+
     
 
     # combobox file system update  
@@ -559,8 +571,6 @@ class EMGExplorer(QMainWindow):
 
     # file system interactivity
     def oc_ListWidget_change(self,item):    
-        print('oc widget')    
-
         self.widget_globalProcessing.updateComboBox(self.get_currentLoader().getListVariable())
 
         last_selection = self.comboBox_group.currentText()
@@ -585,8 +595,6 @@ class EMGExplorer(QMainWindow):
     def oc_comboBox_group_change(self,):
         """When triggered, the list of variable is changed, the plot are eventually cleared or updated
         """
-        print('oc combo')
-
         last_selection = self.comboBox_variable.currentText()
         # update the list of variables
 
@@ -605,7 +613,6 @@ class EMGExplorer(QMainWindow):
     def oc_comboBox_variable_change(self,):
         """When a variable is selected, the list of displayable channels are changed
         """
-        print('oc var')
         self.update_fileSystem_comboBox_Channel()
 
     def oc_comboBox_dim_change(self,):

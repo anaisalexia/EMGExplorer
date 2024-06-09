@@ -232,6 +232,10 @@ class MyDataLoaderNC(MyDataLoader):
         """
         pass
 
+    def setAttrs(self,group,variable_newName,process):
+        self.data_original[group][variable_newName] = self.data_original[group][variable_newName].assign_attrs({'Processing':str(process)})
+
+
     def init_dataLoader(self,path):
         for gr in path.keys():
             for var in path[gr].keys():
@@ -328,7 +332,10 @@ class MyDataLoaderNC(MyDataLoader):
             pass
         return self.data_original[group][var].loc[{dim:channel}] 
     
+    def setToDataOriginal(self,group,variable_newName,variable):
+        self.data_original[group][variable_newName] = self.data[group][variable].copy(deep=True)
 
+    
     def getData(self,group,var,dim,channel):
         """Returns the selected data
 

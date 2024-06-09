@@ -1,4 +1,5 @@
 from .setup import *
+logger = logging.getLogger('main')
 
 
 
@@ -13,6 +14,18 @@ def Try_decorator(function):
 
     return wrapper
 
+
+def LoggerError_decorator(function):
+    def wrapper(*arg,**kwargs):
+        try:
+            x = function(*arg,**kwargs)
+            return x
+        except Exception as e:
+            logger.error(f" An error occured during the execution of {function.__name__} : {e}")
+
+    return wrapper
+
+
 def convertText(txt):
     try:
         if txt.isdigit():
@@ -20,6 +33,7 @@ def convertText(txt):
     except:
         pass
     return txt
+
 
 def deleteItemsOfLayout(layout):
      if layout is not None:
@@ -64,6 +78,7 @@ def walkDatatree_setAttrDataset(info,node):
         
     
     return info
+             
                     
 def get_item_from_path(dict_dict,path):
     """get the item of embedded dictionnaries from a path made of keys

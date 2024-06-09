@@ -1,5 +1,8 @@
 from .setup import *
 from .mainwindow_utils import Try_decorator,get_item_from_path
+from .custom_widget import ComboBoxExpandable
+
+logger = logging.getLogger('main')
 
 class OneSetting(pTypes.GroupParameter):
     delete_trigger = pyqtSignal('PyQt_PyObject')
@@ -11,6 +14,7 @@ class OneSetting(pTypes.GroupParameter):
         self.path = path
         self.position = pos
         self.parent_param = p
+        self.nameSetting = name
         opts = {'name':name}
         opts['type'] = 'bool'
         opts['value'] = True
@@ -80,18 +84,28 @@ class Filters():
         Args:
             val (_type_): _description_
         """
-        val = f"{path[-1]}_[{'_'.join(path[:-1])}] "
-        setting = OneSetting(c_f,val,self.nb,self,path[:-1])
+        val_fc = lambda x: f"{path[-1]}_[{'_'.join(path[:-1])}]_{x} "
+        val = val_fc(0)
+
+        # check if there is already a setting with the same name
+        for id,existingsetting in self.listChildren.items():
+            if val == existingsetting.nameSetting:
+                i = 0
+                while(val == existingsetting.nameSetting):
+                    val = val_fc(i)
+                    i += 1
+
+        setting = OneSetting(c_f,val,self.nb,self,path)
         setting.delete_trigger.connect(self.oc_delete)
         setting.position_trigger.connect(self.oc_position)
         
         self.p.addChild(setting)
         self.listChildren[self.nb] = setting
-        print('child param added pos:', self.nb,setting)
         self.nb += 1
 
     def clearTree(self):
         self.p.clearChildren()
+        self.listChildren = {}
         self.nb = 0
 
     def CreateTree(self):
@@ -118,17 +132,14 @@ class Filters():
             if pos < self.nb:
                 pos+=self.nb
             # get function
-            func = get_item_from_path(PROCESSING,process['path'] + [process['name']])
+            func = get_item_from_path(PROCESSING,process['path'])
             # get path
-            path = process['path'] + [process['name']]
+            path = process['path']
             # add new
-            print('before add New',func, path)
             self.addNew(func,path)
             # change argument
-            print('pos and process',pos,process)
             for name_arg,val_arg in process['arguments'].items():
                 # put the default value
-                print(name_arg,val_arg,self.listChildren[pos].param(name_arg).value())
                 self.listChildren[pos].param(name_arg).setValue(val_arg)
                 print(name_arg,val_arg,self.listChildren[pos].param(name_arg).value())
 
@@ -199,12 +210,63 @@ class Filters():
         dictjson = {}
         for n in range(self.nb):
             setting = self.listChildren[n]
-            dictjson[n]={'name':setting.function.__name__,
+            dictjson[n]={'name': setting.function.__name__,
+                         'process name': setting.nameSetting,
                          'path':setting.path,
                          'arguments':dict(zip(setting.var,[setting.param(v).value() for v in setting.var]))}
 
-        print(dictjson)
         return dictjson
+
+class SingleProcessing(QWidget):
+
+    processingSaved = pyqtSignal(str)
+
+    def __init__(self,parent):
+        super().__init__()
+        
+        # Loading of the UI
+        self.p = parent
+        loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\layout_singleProcessing.ui', self)
+
+        self.paramtree = Filters(None)
+        self.layout_setting.addWidget(self.paramtree.tree)
+        self.button_openJson.clicked.connect(self.oc_openFilter)
+        self.button_clearFilter.clicked.connect(self.paramtree.clearTree)
+
+        self.comboExpandable = ComboBoxExpandable()
+        self.comboExpandable.setData(PROCESSING_NAME)
+        self.layout_expComboBox.addWidget(self.comboExpandable)
+
+        self.comboExpandable.pathChanged.connect(self.oc_add_filter)
+        self.button_saveFilter.clicked.connect(self.oc_saveFilter)
+    
+    def oc_openFilter(self):
+        # get path
+        path = QFileDialog.getOpenFileName(self, 'Open File',)
+                                       #"/home/jana/untitled.png",
+                                    #    "Json (*.json)")
+        #open filter
+        self.paramtree.LoadJson(path[0])
+    
+    def oc_add_filter(self,path):
+        """add a filter to the pipeline
+
+        Args:
+            path (str): path to the clicked section of the menu. eg ['group 1','name']
+        """
+        self.paramtree.addNew(get_item_from_path(PROCESSING,path),path )
+
+    def oc_saveFilter(self):
+        dictjson = self.paramtree.setting_to_json()
+        namepath = QFileDialog.getSaveFileName(self, 'Save File',
+                                       #"/home/jana/untitled.png",
+                                       "Json (*.json)")
+        if os.path.exists(f'{namepath[0]}.json'):
+            logger.warning(f"Single Processing - Processing could not be saved, the file {namepath[0]} already exists ")
+        else:
+            with open(f'{namepath[0]}.json', 'w') as f:
+                json.dump(dictjson, f)
+
 
 
 

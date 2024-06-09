@@ -3,6 +3,8 @@ from .graph import PLOT
 from .mainwindow_utils import deleteItemsOfLayout, Try_decorator
 from .processing_function import apply_jsonFilterGlobal 
 
+
+
 class Canvas(FigureCanvasQTAgg):
     def __init__(self):
         self.fig = Figure()
@@ -211,7 +213,8 @@ class OneGraph():
             self.parent.get_currentLoader().init_dataLoader(path)
             #apply global filters
             dictGlobalProcessing = self.parent.get_currentGlobalProcessingDict()
-            apply_jsonFilterGlobal(loader,path,pathFile=None,dictFile=dictGlobalProcessing)
+            if dictGlobalProcessing != {}:
+                apply_jsonFilterGlobal(loader,path,pathFile=None,dictFile=dictGlobalProcessing)
 
             # transmit data to draw in forms of a list of xarray
             data = []
