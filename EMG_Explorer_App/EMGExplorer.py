@@ -154,6 +154,7 @@ class EMGExplorer(QMainWindow):
         # Initialization Single Processing window
         self.widget_singleProcessing = SingleProcessing(self)
         self.layout_singleProcessing.addWidget(self.widget_singleProcessing)
+        self.widget_singleProcessing.apply.connect(self.updateAllGraph)
         # self.widget_singleProcessing.processingSaved.connect(self.update_comboBoxGlobalProcessing)
 
 
@@ -169,6 +170,10 @@ class EMGExplorer(QMainWindow):
         logger.info('Initialisation of the Interface finished')
         self.show()
 
+
+    def updateAllGraph(self):
+        for i,graph in self.dict_layout_graph.items():
+            graph.update_drawing()
 
     #### Global processing ####
     def init_comboBoxGlobalProcessing(self):
@@ -360,6 +365,10 @@ class EMGExplorer(QMainWindow):
     def oc_newSummary(self):
         if self.w is None:
             self.w = SummaryWindow(self)
+        else:
+            self.w.update_comboBoxGlobalProcessing()
+            self.w.update_file_list()
+
         self.w.show()
         
     

@@ -4,7 +4,7 @@
 import sys
 sys.path.append('EMG_Explorer_App\Explorer_package\processing')
 import functools
-
+import inspect
 # from functions.requirements import *
 # from functions.c3d_function import extract_channels_c3d, read_c3d
 # from functions.plot_function import *
@@ -25,7 +25,8 @@ def Try_decorator(function):
 
 
 def DecoratorGlobal(function):
-    @functools.wraps(function)
+    # @functools.wraps(function)
+    @functools.wraps
     def wrapper(**arg):
         loader = arg['loader']
         path = arg['path']
@@ -41,11 +42,12 @@ def DecoratorGlobal(function):
                     for ch in path[gr][f'{var}'][dim]:
                         x = np.array(loader.getData(gr,var,dim,ch))
                         arg['x'] = x
-                        x = function(x,**arg)
+                        y = function(x,**arg)
 
-                        loader.setData(gr,f'{var}',dim,ch,x)
+                        loader.setData(gr,f'{var}',dim,ch,y)
                         print('Dataset')
-        
+    # wrapper.__signature__ = inspect.signature(function)   
+    # wrapper.__name__ = function.__name__   
     return wrapper
 
 

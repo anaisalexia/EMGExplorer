@@ -39,25 +39,30 @@ def apply_jsonFilterGlobal(loader,pathData,pathFile=None,dictFile=None):
         processDict = dictFile
 
     # apply process for each variable
-    for gr in list(pathData.keys()):
-        for var in list(pathData[gr].keys()):
-            try:
-                # find the accurate 
-                processVar = processDict[var]
+    if processDict != {}:
+        for gr in list(pathData.keys()):
+            for var in list(pathData[gr].keys()):
+                try:
+                    # find the accurate 
+                    try:
+                        processVar = processDict[var]
+                    except:
+                        logger.debug(f"Application Global Filter - No filtering for {var}")
+                        continue
 
-                for nb,process in processVar.items():
-                    func = PROCESSING[process['path'][0]][process['name']]
-                    arg = process['arguments']
-                    arg_copy = arg.copy()
-                    for k,v in arg_copy.items():
-                        if v == None:
-                            del arg[k]
-                    arg['path'] = pathData
-                    arg['loader'] = loader
-                    func(**arg) 
+                    for nb,process in processVar.items():
+                        func = PROCESSING[process['path'][0]][process['name']]
+                        arg = process['arguments']
+                        arg_copy = arg.copy()
+                        for k,v in arg_copy.items():
+                            if v == None:
+                                del arg[k]
+                        arg['path'] = pathData
+                        arg['loader'] = loader
+                        func(**arg) 
 
-            except Exception as e:
-                logger.error(f"Application Global Filter - Processing of var {var} failed : {e}")
+                except Exception as e:
+                    logger.error(f"Application Global Filter - Processing of var {var} failed : {e}")
 
 
 

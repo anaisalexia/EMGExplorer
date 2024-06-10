@@ -53,6 +53,7 @@ def flatten(dictionary, parent_key=False, separator='.'):
     return list_group
         
 ROOT_REPORT = "EMG_Explorer_App/Explorer_package/global_processing_pipelines/"
+DEFAULT_PATH_SAVE_SUMMARY = 'EMG_Explorer_App/Template/template'
 logger = logging.getLogger('main')
 
 
@@ -166,10 +167,8 @@ class SummaryWindow(QWidget):
         self.checkBox_current.setChecked(True)
         self.groupBox_load.setChecked(False)
         self.file_list = []
-        try:
-            self.file_list = [loader.getPath() for loader in list(self.p.dataLoader.values())]
-        except:
-            pass
+        self.update_file_list()
+        
 
         self.save_path = ''
         self.save_processing = False
@@ -220,29 +219,29 @@ class SummaryWindow(QWidget):
     
     def update_comboBoxGlobalProcessing(self):
         lastSelection = self.p.get_globalProcessing()
-        
-
-        print('ComboBox GlobalProcessing update')
         menuJson = dictOfFiles_from_EmbeddedFolders(ROOT_GLOBALPROCESSING)
         self.comboBoxGlobalProcessing.setData(menuJson)
         self.comboBoxGlobalProcessing.append_element(['None'],self.comboBoxGlobalProcessing.menu())
 
         if lastSelection:
-            print(lastSelection)
             self.comboBoxGlobalProcessing.setText(lastSelection[-1])
+
+    def update_file_list(self):
+        try:
+            self.file_list = [loader.getPath() for loader in list(self.p.dataLoader.values())]
+        except:
+            pass
 
     def update_pathGlobalProcessing(self,listpath:list):
         self.path_globalProcessing = listpath
-        print('Processing chooose', listpath)
 
-    def  get_currentGlobalProcessingName(self):
+    def get_currentGlobalProcessingName(self):
         return self.path_globalProcessing[-1]
     
     def get_currentGlobalProcessingDict(self):
         if self.path_globalProcessing != ['None']:
             listpath = list(filter(lambda a: a != 'general', self.path_globalProcessing))
             f = open(f'{ROOT_GLOBALPROCESSING}/{"/".join(listpath)}')
-            print('get global processing dict', f)
             data = json.load(f)
             return data
         else:
@@ -313,7 +312,7 @@ class SummaryWindow(QWidget):
         #                     'summary elements': {0: {'Measure': ['time_domain', 'dfa'], 'Range': 'channel', 'Display': ['display1', 'boxplot']}, 1: {'Measure': ['time_domain', 'lyapunov_exp'], 'Range': 'variable', 'Display': ['display1', 'sys']}}} 
 
         input_template_path = r"EMG_Explorer_App/Template/template/templateSummary.html"
-        output_html_path = lambda x : f"EMG_Explorer_App/Template/template/templateSummary_filled_{x}.html"
+        output_html_path = lambda file,suffix,x : f"{self.save_path}\\Summary_{file}_{suffix}_{x}.html"
 
         # plotly_jinja_data = fig.to_html(full_html=False)
         # #consider also defining the include_plotlyjs parameter to point to an external Plotly.js as described above
@@ -326,14 +325,19 @@ class SummaryWindow(QWidget):
         # dict_getData = {"channel":self.p.}
 
         # For each file: generate a summary
+
         for filepath in self.file_list:
             try:
                 displays = []
 
-                displays += [f"<h4> {filepath}</h4> "]
                 # retrieve loader
                 name = os.path.split(filepath)[-1]
                 type_format = name.split('.')[-1]
+                name_woFormat = name.split('.')[-2]
+                displays += [f"<h4> {name_woFormat}</h4> "]
+                displays += [f"<p> {filepath}</p> "]
+
+
                 loader = DATALOADER[f'.{type_format}'](filepath,name)
                 try:
                     apply_jsonFilterGlobal(loader,pathData=loader.getGroup(), pathFile=None,dictFile=function_processing_dict)
@@ -346,9 +350,13 @@ class SummaryWindow(QWidget):
                 # loader.save(path,variable,process)
                 try:
                     if dict_generation['save processing']:
-                        saving_path_prefix = self.save_path
+
                         print('path save', self.save_path)
-                        saving_name_suffix = 'filtered'
+                        saving_name_suffix = self.lineEdit_suffixFile.text()
+                        print('suffix',saving_name_suffix )
+                        if saving_name_suffix == '':
+                            saving_name_suffix = 'filtered'
+
                         for variable,process in function_processing_dict.items():
                             for group in loader.getListGroup():
                                 variable_newName_fc = lambda x : f"{variable}_{self.get_currentGlobalProcessingName()[:-5]}_{x}"
@@ -369,7 +377,7 @@ class SummaryWindow(QWidget):
                                 # loader.data_original[group][variable_newName] = loader.data_original[group][variable_newName].assign_attrs({'Processing':str(process)})
                         
                         saving_name_nb = 0
-                        saving_path_fc = lambda x : f'{saving_path_prefix}\\{loader.getName().split('.')[0]}_{saving_name_suffix}_{x}.nc'
+                        saving_path_fc = lambda x : f'{self.save_path}\\{loader.getName().split('.')[0]}_{saving_name_suffix}_{x}.nc'
                         saving_path = saving_path_fc(saving_name_nb)
 
                         while(os.path.exists(saving_path)):
@@ -389,7 +397,7 @@ class SummaryWindow(QWidget):
 
 
                 ## SUMMARY ##
-
+                suffixSummary = self.lineEdit_suffix.text()
                 for element in self.dict_summaryElement.values():
                     displays += [f"<h4> {element}</h4> "]
                     function_measure = get_item_from_path(MEASUREMENT,element['Measure'])
@@ -400,7 +408,6 @@ class SummaryWindow(QWidget):
                     # Measurement
                     df_element = pd.DataFrame(None,columns=['Group','Var','Dim','Value'])
                     rows = []
-            
 
                     for gr in loader.getListGroup():
                         for var in [list_var] if list_var != 'All' else loader.getListVariable():
@@ -484,7 +491,14 @@ class SummaryWindow(QWidget):
                     logger.debug(param)
                     data = {"data":dict_file,"fig":' '.join(displays),"params":param}
 
-                    with open(output_html_path(name), "w", encoding="utf-8") as output_file:
+                    path_summarySave = output_html_path(name_woFormat,suffixSummary,0)
+                    i = 0
+                    while os.path.exists(path_summarySave) :
+                        path_summarySave = output_html_path(name_woFormat,suffixSummary,i)
+                        i += 1
+
+
+                    with open(path_summarySave, "w", encoding="utf-8") as output_file:
                         with open(input_template_path) as template_file:
                             # print('Template rendered', data)
                             j2_template = Template(template_file.read())

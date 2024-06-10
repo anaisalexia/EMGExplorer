@@ -23,8 +23,13 @@ class OneSetting(pTypes.GroupParameter):
 
 
         # create parameters
-        self.var = self.function.__code__.co_varnames[:self.function.__code__.co_argcount]
-        var_default = self.function.__defaults__
+        # inspect.signature(self.function).parameters.keys()
+        # inspect.signature(self.function).parameters['order'].default
+# self.function.__name__
+        # self.var = self.function.__code__.co_varnames[:self.function.__code__.co_argcount]
+        self.var = list(inspect.signature(self.function).parameters.keys())
+        # var_default = self.function.__defaults__
+        var_default = [inspect.signature(self.function).parameters[v].default if inspect.signature(self.function).parameters[v].default != inspect._empty else None for  v in self.var]
         if var_default:
             var_default = [None for i in range(len(self.var)-len(var_default))] + list(var_default)
         else:
@@ -84,17 +89,23 @@ class Filters():
         Args:
             val (_type_): _description_
         """
-        val_fc = lambda x: f"{path[-1]}_[{'_'.join(path[:-1])}]_{x} "
+        base_name = f"{path[-1]}_[{'_'.join(path[:-1])}]_"
+        val_fc = lambda x:  f"{base_name}{x}"
         val = val_fc(0)
 
         # check if there is already a setting with the same name
+        i = 0
         for id,existingsetting in self.listChildren.items():
             if val == existingsetting.nameSetting:
-                i = 0
                 while(val == existingsetting.nameSetting):
+
                     val = val_fc(i)
                     i += 1
+                    print('NEW SETTING chgt nom', val,existingsetting.nameSetting)
 
+                
+        
+        print('NEW SETTING', val)
         setting = OneSetting(c_f,val,self.nb,self,path)
         setting.delete_trigger.connect(self.oc_delete)
         setting.position_trigger.connect(self.oc_position)
@@ -146,21 +157,13 @@ class Filters():
         
 
     def shift_position(self,new_nb,type,nb_current=None):
+
         if nb_current == None:
             print('shift default value')
             nb_current = self.nb 
 
         print('shiiiii1iif',nb_current, 'to',new_nb)
 
-        # if abs(new_nb-nb_current) == 1:
-        #     print('diff == 1')
-        #     tmp = self.listChildren[new_nb]
-        #     self.listChildren[new_nb] = self.listChildren[nb_current]
-        #     self.listChildren[new_nb].position = new_nb
-        #     self.listChildren[nb_current] = tmp
-        #     self.listChildren[new_nb].position = new_nb
-
-        # else:
         if type == 'add': # new_nb<nb_current
             for n in range(nb_current-1,new_nb-1,-1):
                 print('add',n,'to',n+1)
@@ -169,7 +172,6 @@ class Filters():
                 self.listChildren[n+1].param('Functionality','Position').setValue(n+1,blockSignal=self.listChildren[n+1].oc_position_handler)
 
         elif type == 'del': # new_nb>nb_current
-            print('IN ELIF DEL',new_nb,nb_current )
             for n in range(nb_current,new_nb):
                 print('del',n+1,'to',n)
                 self.listChildren[n] = self.listChildren[n+1]
@@ -178,13 +180,18 @@ class Filters():
 
 
     def oc_delete(self,nb):
-        print(nb)
         self.p.removeChild(self.listChildren[nb])
         self.listChildren.pop(nb)
+        print('DELETE from', nb ,self.nb -1 )
         if nb == self.nb-1:
             pass
         else:
-            self.shift_position(nb,'del')
+             for n in range(nb,self.nb -1):
+                print('del',n+1,'to',n)
+                self.listChildren[n] = self.listChildren[n+1]
+                self.listChildren[n].position = n 
+                self.listChildren[n].param('Functionality','Position').setValue(n,blockSignal=self.listChildren[n].oc_position_handler)
+
         self.nb -= 1
     
     def oc_position(self,nb,new_val):
@@ -220,6 +227,7 @@ class Filters():
 class SingleProcessing(QWidget):
 
     processingSaved = pyqtSignal(str)
+    apply = pyqtSignal()
 
     def __init__(self,parent):
         super().__init__()
@@ -238,7 +246,13 @@ class SingleProcessing(QWidget):
         self.layout_expComboBox.addWidget(self.comboExpandable)
 
         self.comboExpandable.pathChanged.connect(self.oc_add_filter)
-        self.button_saveFilter.clicked.connect(self.oc_saveFilter)
+        self.button_saveFilterAs.clicked.connect(self.oc_saveFilter)
+        self.button_saveFilter.clicked.connect(lambda x :self.oc_saveFilter(save=True))
+        self.button_apply.clicked.connect(lambda x : self.apply.emit())
+
+
+        self.open_processing_path = []
+
     
     def oc_openFilter(self):
         # get path
@@ -247,6 +261,8 @@ class SingleProcessing(QWidget):
                                     #    "Json (*.json)")
         #open filter
         self.paramtree.LoadJson(path[0])
+        self.open_processing_path = path[0]
+
     
     def oc_add_filter(self,path):
         """add a filter to the pipeline
@@ -256,16 +272,29 @@ class SingleProcessing(QWidget):
         """
         self.paramtree.addNew(get_item_from_path(PROCESSING,path),path )
 
-    def oc_saveFilter(self):
+    def oc_saveFilter(self,save=False):
         dictjson = self.paramtree.setting_to_json()
-        namepath = QFileDialog.getSaveFileName(self, 'Save File',
-                                       #"/home/jana/untitled.png",
-                                       "Json (*.json)")
-        if os.path.exists(f'{namepath[0]}.json'):
-            logger.warning(f"Single Processing - Processing could not be saved, the file {namepath[0]} already exists ")
-        else:
-            with open(f'{namepath[0]}.json', 'w') as f:
+
+        if not save:
+            namepath = QFileDialog.getSaveFileName(self, 'Save File',
+                                        #"/home/jana/untitled.png",
+                                        "Json (*.json)")
+            if os.path.exists(f'{namepath[0]}.json'):
+                logger.warning(f"Single Processing - Processing could not be saved, the file {namepath[0]} already exists ")
+            else:
+                with open(f'{namepath[0]}.json', 'w') as f:
+                    json.dump(dictjson, f)
+                logger.info(f"Single Processing - Processing saved in file {namepath[0]} ")
+
+        
+        else:            
+            with open(f'{self.open_processing_path}', 'w') as f:
                 json.dump(dictjson, f)
+            if os.path.exists(f'{self.open_processing_path}'):
+                logger.warning(f"Single Processing - Processing saved, the file {self.open_processing_path} has been overwritten ")
+            else:
+                logger.info(f"Single Processing - Processing saved in file {self.open_processing_path} ")
+
 
 
 
@@ -321,8 +350,17 @@ class GroupParametersGlobalProcessing(QWidget):
         Args:
             val (_type_): _description_
         """
-        val = f"{path[-1]}_[{'_'.join(path[:-1])}] "
-        setting = OneSetting(processing,val,self.nb,self,path[:-1])
+        val_fc = lambda x: f"{path[-1]}_[{'_'.join(path[:-1])}]_{x} "
+        val = val_fc(0)   
+
+        i = 1
+        for id,existingsetting in self.listProcessing.items():
+            if val == existingsetting.nameSetting:
+                while(val == existingsetting.nameSetting):
+                    val = val_fc(i)
+                    i += 1
+
+        setting = OneSetting(processing,val,self.nb,self,path)
         setting.delete_trigger.connect(self.oc_delete)
         setting.position_trigger.connect(self.oc_position)
         
@@ -354,21 +392,18 @@ class GroupParametersGlobalProcessing(QWidget):
             data = json.load(f)
         
 
-
         for pos,process in data.items():
             pos = int(pos) 
 
             if pos < self.nb:
                 pos+=self.nb
             # get function
-            func = get_item_from_path(PROCESSING,process['path'] + [process['name']])
+            func = get_item_from_path(PROCESSING,process['path'] )
             # get path
-            path = process['path'] + [process['name']]
+            path = process['path']
             # add new
-            print('before add New',func, path)
             self.addNew(func,path)
             # change argument
-            print('pos and process',pos,process)
             for name_arg,val_arg in process['arguments'].items():
                 # put the default value
                 print(name_arg,val_arg,self.listProcessing[pos].param(name_arg).value())
@@ -379,9 +414,8 @@ class GroupParametersGlobalProcessing(QWidget):
     def shift_position(self,new_nb,type,nb_current=None):
         if nb_current == None:
             print('shift default value')
-            nb_current = self.nb 
+            nb_current = self.nb
 
-        print('shiiiii1iif',nb_current, 'to',new_nb)
 
         # else:
         if type == 'add': # new_nb<nb_current
@@ -407,7 +441,12 @@ class GroupParametersGlobalProcessing(QWidget):
         if nb == self.nb-1:
             pass
         else:
-            self.shift_position(nb,'del')
+             for n in range(nb,self.nb -1):
+                print('del',n+1,'to',n)
+                self.listProcessing[n] = self.listProcessing[n+1]
+                self.listProcessing[n].position = n 
+                self.listProcessing[n].param('Functionality','Position').setValue(n,blockSignal=self.listProcessing[n].oc_position_handler)
+
         self.nb -= 1
     
     def oc_position(self,nb,new_val):
@@ -434,10 +473,11 @@ class GroupParametersGlobalProcessing(QWidget):
         for n in range(self.nb):
             setting = self.listProcessing[n]
             dictjson[n]={'name':setting.function.__name__,
+                        'process name': setting.nameSetting,
+
                          'path':setting.path,
                          'arguments':dict(zip(setting.var,[setting.param(v).value() for v in setting.var]))}
 
-        print(dictjson)
         return dictjson
 
 
