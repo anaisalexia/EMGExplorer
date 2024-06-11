@@ -26,7 +26,7 @@ def Try_decorator(function):
 
 def DecoratorGlobal(function):
     # @functools.wraps(function)
-    @functools.wraps
+    @functools.wraps(function)
     def wrapper(**arg):
         loader = arg['loader']
         path = arg['path']
@@ -236,7 +236,7 @@ def butterfilter_bandpass_dual(emg, order=2,c_f_low=10,c_f_high=5, s_f = SAMPLIN
     return emg_filtered
 
 
-
+@DecoratorGlobal
 def butterfilter_bandpass(emg, order=2,c_f_low=60,c_f_high=5, s_f = SAMPLING_RATE):
 
     assert not empty_value_check(emg),'Empty values emg filter bandpass'
