@@ -1,0 +1,1 @@
+{"HDsEMG": {"0": {"name": "butterfilter", "process name": "butterfilter_[processing_perso_global]_0 ", "path": ["processing_perso_global", "butterfilter"], "arguments": {"emg": null, "order": 2, "c_f": 2, "type": "lowpass", "s_f": 1000}}}}

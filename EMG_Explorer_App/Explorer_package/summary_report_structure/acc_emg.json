@@ -1,0 +1,1 @@
+{"0": {"Measure": ["measurement1", "mean"], "Range": "channel", "Display": ["display1", "text"], "Variables": "HDsEMG"}, "1": {"Measure": ["measurement1", "mean"], "Range": "channel", "Display": ["display1", "text"], "Variables": "Accelerations"}}
