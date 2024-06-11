@@ -74,26 +74,6 @@
             <property name="bottomMargin">
              <number>15</number>
             </property>
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_4">
-              <property name="text">
-               <string>File System</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="QComboBox" name="comboBox_group">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="currentIndex">
-               <number>-1</number>
-              </property>
-             </widget>
-            </item>
             <item row="2" column="0">
              <widget class="QLabel" name="label_6">
               <property name="sizePolicy">
@@ -120,30 +100,16 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="5">
-             <widget class="QComboBox" name="comboBox_variable">
+            <item row="2" column="1">
+             <widget class="QComboBox" name="comboBox_group">
               <property name="sizePolicy">
                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
-             </widget>
-            </item>
-            <item row="1" column="0" colspan="6">
-             <widget class="QListWidget" name="listWidget_file">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>0</height>
-               </size>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="5">
-             <widget class="QToolButton" name="toolButton_2">
-              <property name="text">
-               <string>...</string>
+              <property name="currentIndex">
+               <number>-1</number>
               </property>
              </widget>
             </item>
@@ -160,6 +126,43 @@
               </property>
              </spacer>
             </item>
+            <item row="2" column="5">
+             <widget class="QComboBox" name="comboBox_variable">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_4">
+              <property name="text">
+               <string>File System</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="5">
+             <widget class="QToolButton" name="toolButton_2">
+              <property name="text">
+               <string>...</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0" colspan="6">
+             <widget class="QListWidget" name="listWidget_file">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0" colspan="5">
+             <layout class="QVBoxLayout" name="lcomboBox_globalProcessing"/>
+            </item>
            </layout>
           </widget>
           <widget class="QTabWidget" name="tabWidget">
@@ -170,7 +173,7 @@
             </sizepolicy>
            </property>
            <property name="currentIndex">
-            <number>3</number>
+            <number>0</number>
            </property>
            <widget class="QWidget" name="tab_3">
             <attribute name="title">
@@ -222,23 +225,9 @@
              </item>
             </layout>
            </widget>
-           <widget class="QWidget" name="New">
-            <attribute name="title">
-             <string>New</string>
-            </attribute>
-            <layout class="QVBoxLayout" name="verticalLayout_8">
-             <item>
-              <widget class="QPushButton" name="pushButton">
-               <property name="text">
-                <string>+</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
            <widget class="QWidget" name="tab">
             <attribute name="title">
-             <string>Page</string>
+             <string>Individual Processing</string>
             </attribute>
             <layout class="QVBoxLayout" name="verticalLayout_4">
              <item>
@@ -322,6 +311,16 @@
                 </item>
                </layout>
               </widget>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="GlobalProcessing">
+            <attribute name="title">
+             <string>Global Processing</string>
+            </attribute>
+            <layout class="QVBoxLayout" name="verticalLayout_8">
+             <item>
+              <layout class="QVBoxLayout" name="layout_globaProcessing"/>
              </item>
             </layout>
            </widget>
@@ -476,6 +475,9 @@
        </layout>
       </widget>
      </widget>
+    </item>
+    <item row="1" column="0">
+     <layout class="QVBoxLayout" name="layout_log"/>
     </item>
    </layout>
   </widget>
