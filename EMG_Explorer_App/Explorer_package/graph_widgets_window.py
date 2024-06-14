@@ -35,6 +35,7 @@ class Layout_Parameters_Type(QWidget):
         loadUi( 'hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\layout_parameters_type.ui',self)
         self.layout_param = self.vlayout_parameters
         self.selectedData = {}
+        self.selectedDataPath = {}
 
     # tab data interactivity
         self.selectDataWindow = None
@@ -61,7 +62,7 @@ class Layout_Parameters_Type(QWidget):
         # from dict Data to actual data
         loader = self.parent.get_currentLoader()
         self.selectedData = loader.get_DataFromDict(dictData)
-        self.selectDataPath = dictData
+        self.selectedDataPath = dictData
 
         # print('selected DATA',self.selectedData)
         self.selectedDataChanged.emit()
@@ -75,18 +76,24 @@ class Layout_Parameters_Type(QWidget):
         return self.selectedData
     
     def get_dataPath(self):
-        print("get dat NOT INDEPENDANT", self.selectDataPath)
-        return self.selectDataPath
+        return self.selectedDataPath
     
     def oc_groupBoxChecked(self,state):
         if state :
             self.dataIndependent = True
-            
-        #::::: update list graph ?
         else:
             self.dataIndependent = False
 
-        #::update list graph ?
+    def saveState(self):
+        state = {'independent': self.dataIndependent,
+                 'pathSelectedData': self.selectedDataPath,
+                  'selectedData':self.selectedData  }
+        return state
+    
+    def restoreState(self,state):
+        self.groupBox_dataSelection.setChecked(state['independent'])
+        self.selectedDataPath = state['pathSelectedData']
+        self.selectedData = state['selectedData']
 
 
 
@@ -203,7 +210,10 @@ class OneGraph():
         print('In One Graph, the retrieved loader and data are : ', loader,path)
         return loader,path
     
+    
     def update_drawing(self):
+        """Update the drawing of the Plot of the Graphique Unit. 
+        """
 
         if self.ui_graph:
             self.ui_graph.clearGraph()
@@ -216,20 +226,32 @@ class OneGraph():
             if dictGlobalProcessing != {}:
                 apply_jsonFilterGlobal(loader,path,pathFile=None,dictFile=dictGlobalProcessing)
 
-            # transmit data to draw in forms of a list of xarray
-            data = []
-            title = ""
-            for gr in list(path.keys()):
-                for var in list(path[gr].keys()):
-                    title += var + " "
-                    for dim in list(path[gr][var].keys()):
-                        for ch in path[gr][var][dim]:
-                            title += f" {ch} "
-                            data.append(loader.getData(gr,var,dim,ch))
-            self.ui_graph.draw(data) # list of xarray
+            # # transmit data to draw in forms of a list of xarray
+            # data = []
+            # title = ""
+            # for gr in list(path.keys()):
+            #     for var in list(path[gr].keys()):
+            #         title += var + " "
+            #         for dim in list(path[gr][var].keys()):
+            #             for ch in path[gr][var][dim]:
+            #                 title += f" {ch} "
+            #                 data.append(loader.getData(gr,var,dim,ch))
+                            
+            kwargs = {}
+            # try:
+            #     fs = loader.getSamplingFrequency()
+            #     kwargs['fs'] = fs
+            # except:
+            #     pass
 
-            dict_info = {'title':title,'xlabel':'time','ylabel':'Amplitude'}
-            self.ui_graph.setInformation(**dict_info)
+
+            # dict_info = {'title':title,'xlabel':'time','ylabel':'Amplitude'}
+            # self.ui_graph.setInformation(**dict_info)
+            # self.ui_graph.draw(data,**kwargs) # list of xarray
+
+            self.ui_graph.draw(loader,path,**kwargs) # list of xarray
+
+
 
     
 
@@ -249,6 +271,21 @@ class OneGraph():
     def clearPlot(self):
         if self.ui_graph:
             self.ui_graph.clearGraph()
+
+    def saveState(self):
+        state = {'id':self.id,
+                 'type' : self.ui_parameters.comboBox_type.currentText(),
+                 'selectedDataState' : self.ui_parameters.saveState()}
+        print(state)
+        return state
+
+    def restoreState(self,state):
+        type_ = state['type']
+        self.id = state['id']
+        self.ui_parameters.restoreState(state['selectedDataState'])
+        self.ui_parameters.comboBox_type.setCurrentText(type_)
+        #select comboBox Type 
+        pass
 
 
 
@@ -380,5 +417,7 @@ class WindowChannelSelection(QWidget):
         print(f'In Multiple channel selection, the selected data are {dictData}')
         # eg: {'/': {'Trigger': [], 'Accelerations': {'axes': ['Y']}, 'HDsEMG': {'Channel': ['6', '10', '11', '12']}}}
         self.sendData.emit(dictData)
+
+        
 
 

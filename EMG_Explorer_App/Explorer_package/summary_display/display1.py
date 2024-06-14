@@ -3,6 +3,7 @@ sys.path.append('EMG_Explorer_App/Explorer_package/summary_display')
 
 from requirement_display1 import *
 
+
 # DISPLAYS RETURN TEXT OR PATH TO AN IMAGE
 
 # EXEMPLE Channel
@@ -21,8 +22,20 @@ def displaySig(row):
 
 def heatmap4(array):
     array = np.reshape(array,(4,-1))    
-    fig = px.imshow(array)
+    fig = px.imshow(array,text_auto=True)
     return fig.to_html(full_html=False)
+
+def annotatedHeatmap8(df:pd.DataFrame):
+    array = np.array(df['Value'])
+    dim =  np.array(df['Dim'])
+    array = np.reshape(array,(8,-1))    
+    dim = np.reshape(dim,(8,-1))    
+    print(df,dim,array)
+    fig = px.imshow(array)
+    fig.update_traces(text=dim, texttemplate="%{text}")
+    # fig = ff.create_annotated_heatmap(array ,annotation_text=dim)
+    return fig.to_html(full_html=False)
+
 
 def heatmap8(array):
     array = np.reshape(array,(8,-1))    

@@ -23,7 +23,9 @@ from PyQt5.QtCore import pyqtSignal, pyqtSlot
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtWidgets import QListWidgetItem
+from PyQt5.QtWidgets import QListWidgetItem, QShortcut
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtCore import Qt
 
 from matplotlib.figure import Figure
 from PyQt5.uic import loadUi

@@ -161,7 +161,7 @@ class SummaryWindow(QWidget):
         self.init_interactivity()
 
         # SET UP
-        self.processing = ''
+        # self.processing = ''
         self.list_variables = []
 
         self.checkBox_current.setChecked(True)
@@ -219,6 +219,7 @@ class SummaryWindow(QWidget):
     
     def update_comboBoxGlobalProcessing(self):
         lastSelection = self.p.get_globalProcessing()
+        self.path_globalProcessing = lastSelection
         menuJson = dictOfFiles_from_EmbeddedFolders(ROOT_GLOBALPROCESSING)
         self.comboBoxGlobalProcessing.setData(menuJson)
         self.comboBoxGlobalProcessing.append_element(['None'],self.comboBoxGlobalProcessing.menu())
@@ -300,7 +301,7 @@ class SummaryWindow(QWidget):
             dlg = QtWidgets.QMessageBox.warning(self, '!','Missing Information')
 
         dict_generation = {
-            'processing': self.processing,
+            'processing': self.get_currentGlobalProcessingDict(),
             'file list':self.file_list,
             'path save':self.save_path,
             'save processing':self.checkBox_saveProcessing.isChecked(),
@@ -320,7 +321,8 @@ class SummaryWindow(QWidget):
 
         displays = []
 
-        function_processing_dict = self.get_currentGlobalProcessingDict()
+        # function_processing_dict = self.get_currentGlobalProcessingDict()
+        function_processing_dict = dict_generation['processing']
         # function_processing_path = get_item_from_path(PROCESSING,self.processing)
         # dict_getData = {"channel":self.p.}
 

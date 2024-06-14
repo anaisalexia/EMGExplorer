@@ -24,6 +24,7 @@ def create_menuJson(root):
 
 class LayoutParameters(QWidget):
     processingPathChanged_handler = pyqtSignal(list)
+    checkProcessedRaw = pyqtSignal(bool)
 
     def __init__(self,):
         super().__init__()
@@ -54,6 +55,10 @@ class LayoutParameters(QWidget):
 
     def init_interactivity(self):
         self.comboMenu.pathChanged.connect(self.oc_pathChanged_handler)
+        self.checkBox_processedRaw.stateChanged.connect(self.oc_checkBoxRaw)
+
+    def oc_checkBoxRaw(self,checked):
+        self.checkProcessedRaw.emit(checked)
 
     def oc_pathChanged_handler(self,path):
         print('path changed handler',path)
@@ -170,6 +175,8 @@ class PlotLine(pg.MultiPlotWidget):
         self.plotDataOriginal = None
         self.currentPath = ['None']
 
+        self.displayRaw = False
+
         self.init_layoutGraphInteractivity()
 
 
@@ -191,8 +198,9 @@ class PlotLine(pg.MultiPlotWidget):
         self.plot.setLabels(left=ylabel,bottom=xlabel)
         self.plot.setLabel('top',f"<h4>{self.id}: {title}</h4>")
 
-    def draw(self,data_list=None):
+    def draw(self,data_list=None,**kwargs):
         pen = pg.mkPen(color=(52, 138, 189), width=2)
+        pen_raw =  pg.mkPen(color=(138,52, 189), width=2)
         
         if data_list:
             self.plotDataOriginal = data_list
@@ -205,11 +213,21 @@ class PlotLine(pg.MultiPlotWidget):
             
             else:
                 y = data.values
-                for t in ['Time','time']:
-                    if t in data.dims:
-                        x = np.array(data[t])
+                x = np.arange(len(y))
 
+                # for t in ['Time','time']:
+                #     if t in data.dims:
+                #         x = np.array(data[t])
+                try:
+                    fs = kwargs['fs']
+                    x = x/fs
+                except:
+                    pass
                 self.plotData = {'x':x,'y':y}
+           
+
+            if self.displayRaw:
+                self.plot.plot(x=self.plotData['x'],y=self.plotData['y'],pen=pen_raw)
 
             self.applyFilter()
             self.plot.plot(x=self.plotData['x'],y=self.plotData['y'],pen=pen)
@@ -228,6 +246,11 @@ class PlotLine(pg.MultiPlotWidget):
     def init_layoutGraphInteractivity(self):
         print('layout graph interactivity init')
         self.l.processingPathChanged_handler.connect(self.oc_draw)
+        self.l.checkProcessedRaw.connect(self.oc_processedRaw)
+        
+    def oc_processedRaw(self,checked):
+        self.displayRaw = checked
+        self.draw()
 
     def oc_draw(self,path):
         self.currentPath = path
@@ -272,7 +295,7 @@ class FFT(pg.MultiPlotWidget):
         """
         return self.parent.get_dataChannelPath()
 
-    def draw(self,data_list):
+    def draw(self,data_list,**kwargs):
         pen = pg.mkPen(color=(52, 138, 189), width=2)
 
         for data in data_list:
@@ -343,7 +366,7 @@ class MultiplePlot(pg.MultiPlotWidget):
         xlabel = kwargs['xlabel']
         ylabel = kwargs['ylabel']
 
-    def draw(self,data):
+    def draw(self,data,**kwargs):
         print('draw')
 
         limit = np.min([self.limit_max,len(data)])
@@ -482,7 +505,7 @@ class MultiplePlot2(pg.MultiPlotWidget):
         return self.parent.get_dataVariablePath()
 
     @Try_decorator
-    def draw(self,data,distance=None,timestamp=False):
+    def draw(self,data,distance=None,timestamp=False,**kwargs):
         pen = pg.mkPen(color=(52, 138, 189), width=2)
         self.clearGraph()
         print('draw')
@@ -507,15 +530,21 @@ class MultiplePlot2(pg.MultiPlotWidget):
             y = data[i_ch].values
             y = y - np.mean(y) + self.distance * (i%nb_line)            
 
-            if timestamp:
-                for t in ['Time','time']:
-                    if t in data.dims:
-                        x = np.array(data[t])
-                        try:
-                            tick = t.values()
-                        except : pass
-            else:
-                x= np.arange(0,len(y))
+            # if timestamp:
+            #     for t in ['Time','time']:
+            #         if t in data.dims:
+            #             x = np.array(data[t])
+            #             try:
+            #                 tick = t.values()
+            #             except : pass
+            # else:
+
+            x= np.arange(0,len(y))
+            try:
+                fs = kwargs['fs']
+                x = x/fs
+            except:
+                pass
 
             self.line[i] = self.plot[i//nb_line].plot(x=x,y=y,pen=pen)
             self.plot[i//nb_line].addItem(self.line[i])

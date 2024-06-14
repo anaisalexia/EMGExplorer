@@ -189,11 +189,15 @@ class MyDataLoaderNC(MyDataLoader):
         self.openFile()
         logger.info(f'File open {name}')
 
+        self.fs = 1
+
+
 
     # DATA
     @staticmethod
     def format():
         return '.nc'
+
 
     def openFile(self):
         """Load .nc file and extract the path of the groups that have data variables
@@ -204,6 +208,7 @@ class MyDataLoaderNC(MyDataLoader):
         self.data =  datatree.open_datatree(self.path)
         self.data_original = datatree.open_datatree(self.path)
         self.loadGroup()
+        self.init_Fs()
 
     def loadGroup(self)->dict:
         """Return a dictionnary with the groups, variables and channels names
@@ -215,7 +220,6 @@ class MyDataLoaderNC(MyDataLoader):
         """
         # Extract the variables
         self.dict_group = walkDatatree_getPathDataset(self.data,{})
-        print('dict group after load',self.dict_group)
 
     # ATTRIBUTS
     def loadAttributs(self):
@@ -234,6 +238,15 @@ class MyDataLoaderNC(MyDataLoader):
 
     def setAttrs(self,group,variable_newName,process):
         self.data_original[group][variable_newName] = self.data_original[group][variable_newName].assign_attrs({'Processing':str(process)})
+
+    def init_Fs(self):
+        for attr,val in self.attrs.items():
+            if attr in ['sample_frequency']:
+                self.fs = val
+            break
+
+    def getSamplingFrequency(self):
+        return self.fs
 
 
     def init_dataLoader(self,path):
@@ -508,9 +521,12 @@ def load_multiple_files(paths): # load _ multiple files
     """
     data = {}
     for path in paths:
-        name = os.path.split(path)[-1]
-        type_format = name.split('.')[-1]
-        loader = DATALOADER[f'.{type_format}'](path,name)        
-        data[name] = loader
+        try:
+            name = os.path.split(path)[-1]
+            type_format = name.split('.')[-1]
+            loader = DATALOADER[f'.{type_format}'](path,name)        
+            data[name] = loader
+        except Exception as e:
+            logger.warning(f'Loading - File {path} could not be loaded : {e}')
         
     return data

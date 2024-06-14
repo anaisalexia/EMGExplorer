@@ -4,6 +4,7 @@ from Explorer_package.loading_function import *
 from PyQt5.QtCore import Qt
 import os
 from io import StringIO
+import os
 
 log_stream = StringIO() 
 now = datetime.now()
@@ -103,8 +104,7 @@ class EMGExplorer(QMainWindow):
         self.wnewFilter = None
         self.layout = Layout(3,1)
         self.dock = {}
-        # Restores the previous state of the app
-        self.restoreSettings()
+       
 
         #
         self.dataLoader = {}
@@ -132,8 +132,10 @@ class EMGExplorer(QMainWindow):
         self.time = np.arange(100)
         self.signal = np.random.random(100)
         self.current_id = 0
-
+        # Restores the previous state of the app
+        self.restoreSettings()
         self.update_list_layout_graph()
+        self.restoreGraph()
         # self.initialize_layout_graph()
         # SETTINGS INIT
         # self.setting = {0:OneSetting(None,'Custom parameter')}
@@ -166,9 +168,24 @@ class EMGExplorer(QMainWindow):
         self.init_comboBoxGlobalProcessing()
         
         self.interactivity_fileSystem()
+        self.restoreGlobalProcessing()
+
+        # QShortcut( 'D' ).activated.connect( lambda x : self.comboBox_dim.setCurrentText(int(self.comboBox_dim.currentText()) + 1 ))
+        shortcut = QKeySequence(Qt.Key_D)
+        self.shortcut = QShortcut(shortcut, self)
+        self.shortcut.activated.connect(lambda : self.nextChannel(1))
+
+        shortcut = QKeySequence(Qt.Key_Q)
+        self.shortcut = QShortcut(shortcut, self)
+        self.shortcut.activated.connect(lambda : self.nextChannel(-1))
 
         logger.info('Initialisation of the Interface finished')
         self.show()
+
+    def nextChannel(self,i):
+        ch = int(self.comboBox_dim.currentText()) + i
+        self.comboBox_dim.setCurrentText(str(ch))
+        self.oc_comboBox_dim_change()
 
 
     def updateAllGraph(self):
@@ -197,6 +214,7 @@ class EMGExplorer(QMainWindow):
 
     def update_pathGlobalProcessing(self,listpath:list):
         self.path_globalProcessing = listpath
+        self.oc_comboBox_dim_change()
 
     def get_currentGlobalProcessingDict(self):
         if self.path_globalProcessing != ['None']:
@@ -386,6 +404,7 @@ class EMGExplorer(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea,self.dock[self.nb_dock])
         self.nb_dock +=1
 
+
     def oc_visibility(self,dock,visibility):
         """ change the visibility of a dock window"""
         #### !! PB: error bc called when the win closes
@@ -419,45 +438,79 @@ class EMGExplorer(QMainWindow):
         name_folder = 'ExplorerEMG'
         name_seting = 'MyLayout'
 
-        settings = QSettings(name_folder, name_seting)
+        try:
+            settings = QSettings(name_folder, name_seting)
+        except Exception as e:
+            logger.error(f'Restore Setting - Settings could not be found : {e}')
+            return
 
-        # restore general layout and window state
-        geometry = settings.value("geometry", QByteArray())
-        self.restoreGeometry(geometry)
-        state = settings.value("windowState", QByteArray())
-        self.restoreState(state)
+        try:
+            # restore general layout and window state
+            geometry = settings.value("geometry", QByteArray())
+            self.restoreGeometry(geometry)
+            state = settings.value("windowState", QByteArray())
+            self.restoreState(state)
 
-        self.nb_layout = settings.value("nb_layout", QByteArray())
-        self.nb_version = settings.value("nb_version", QByteArray())
-        self.layout = Layout(self.nb_layout,self.nb_version)
-        self.gridLayout_3.addWidget(self.layout)
+            self.nb_layout = settings.value("nb_layout", QByteArray())
+            self.nb_version = settings.value("nb_version", QByteArray())
+            self.layout = Layout(self.nb_layout,self.nb_version)
+            self.gridLayout_3.addWidget(self.layout)
 
-        # restore splitters state
-        for splitter in self.findChildren(QSplitter):
-            try:
-                splitterSettings=settings.value(splitter.objectName())
-                if splitterSettings:
-                    splitter.restoreState(splitterSettings)
-            except Exception as e:
-                print(e)
+            # restore splitters state
+            for splitter in self.findChildren(QSplitter):
+                try:
+                    splitterSettings=settings.value(splitter.objectName())
+                    if splitterSettings:
+                        splitter.restoreState(splitterSettings)
+                except Exception as e:
+                    print(e)
 
-        #restore dock
-        self.nb_dock = 0
-        while(True):
+            #restore dock
+            self.nb_dock = 0
+            while(True):
 
-            dockSetting = settings.value(f'dock {self.nb_dock}')
+                dockSetting = settings.value(f'dock {self.nb_dock}')
 
-            if dockSetting:
-                self.dock[self.nb_dock] = QDockWidget(f'dock {self.nb_dock}',self)
-                self.dock[self.nb_dock].setObjectName(f'dock {self.nb_dock}')
+                if dockSetting:
+                    self.dock[self.nb_dock] = QDockWidget(f'dock {self.nb_dock}',self)
+                    self.dock[self.nb_dock].setObjectName(f'dock {self.nb_dock}')
 
-                self.dock[self.nb_dock].visibilityChanged.connect(partial(self.oc_visibility,self.nb_dock))
-                self.addDockWidget(Qt.RightDockWidgetArea,self.dock[self.nb_dock])
-                self.dock[self.nb_dock].restoreGeometry(dockSetting)                    
-                self.nb_dock += 1
-            else:
-                break
-            
+                    self.dock[self.nb_dock].visibilityChanged.connect(partial(self.oc_visibility,self.nb_dock))
+                    self.addDockWidget(Qt.RightDockWidgetArea,self.dock[self.nb_dock])
+                    self.dock[self.nb_dock].restoreGeometry(dockSetting)                    
+                    self.nb_dock += 1
+                else:
+                    break
+        except Exception as e:
+            logger.error(f'Restore Setting - Settings could not be restored : {e}')
+
+        
+
+    def restoreGraph(self):
+        name_folder = 'ExplorerEMG'
+        name_seting = 'MyLayout'
+
+
+        try:
+            settings = QSettings(name_folder, name_seting)
+
+            for id in range(0,settings.value('Nb Graph')):
+                state = settings.value(f'graph {id}')
+                graphId = state['id']
+                self.dict_layout_graph[graphId].restoreState(state)
+        except Exception as e:
+            logger.error(f'Restore Setting - Graph settings could not be restored : {e}')
+
+    def restoreGlobalProcessing(self):
+        try:
+            name_folder = 'ExplorerEMG'
+            name_seting = 'MyLayout'
+
+            settings = QSettings(name_folder, name_seting)
+            self.path_globalProcessing = settings.value('globalProcessingPath')
+            self.comboBoxGlobalProcessing.setText(self.path_globalProcessing[-1])
+        except Exception as e:
+            logger.error(f'Restore Setting - Global Processing settings could not be restored : {e}')
 
     def closeEvent(self, event):
         """Function triggered when the mainwindow is closed
@@ -490,8 +543,14 @@ class EMGExplorer(QMainWindow):
                 settings.setValue(f'dock {i}', dock.saveGeometry()) 
                 i += 1
 
+        # save graph
+        settings.setValue('Nb Graph',len(self.dict_layout_graph))
+        for id,graph in self.dict_layout_graph.items():
+            settings.setValue(f'graph {i}',graph.saveState())
 
-        # save tab state
+        # save Processing global
+        settings.setValue('globalProcessingPath',self.path_globalProcessing)
+
     #### end Saving and restoring Layout #### 
 
 
@@ -506,10 +565,18 @@ class EMGExplorer(QMainWindow):
         # load the paths
         files,extension = QFileDialog.getOpenFileNames(self, 'Open file',  'C:\\Users\\mtlsa\\Documents\\UTC\\GB05\\TX\\Python_EMGExplorer\\data',"files (*.*)")
         
-        self.dataLoader = load_multiple_files(files)
+        data = load_multiple_files(files)
+        list_file = self.dataLoader.keys()
+        for name_file in data.keys():
+            if name_file not in list_file:
+                self.dataLoader[name_file] = data[name_file]
+
+            else:
+                data.pop(name_file)
+                logger.warning(f"Explorer - File {name_file} not loaded, it was already in the list")
 
         # update the list
-        for loader in self.dataLoader.keys():
+        for loader in data.keys():
             self.listWidget_file.addItem(loader)
 
 
@@ -597,6 +664,7 @@ class EMGExplorer(QMainWindow):
 
 
         if loader.attrs:
+            self.treeWidget.clear()
             walkDatatree_setAttrDataset(loader.attrs,self.treeWidget)
         
        

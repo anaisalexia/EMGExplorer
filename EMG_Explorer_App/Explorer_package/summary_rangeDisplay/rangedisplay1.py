@@ -13,6 +13,15 @@ def forAllRows(function,df:pd.DataFrame,**arg):
 
     return display
 
+def forAllRowsdf(function,df:pd.DataFrame,**arg):
+    display = []
+
+    for id,row in df.iterrows():
+        x = function(row,**arg)
+        display.append(x)
+        display.append("<br>")
+
+    return display
 
 def forAllGroup(function,df:pd.DataFrame,**arg):
 
@@ -21,6 +30,18 @@ def forAllGroup(function,df:pd.DataFrame,**arg):
     for gr,data in df_group:
         print(data)
         x = function(data.loc[:,'Value'],**arg)
+        display.append(f"{gr}")
+        display.append(x)
+        display.append("<br>")
+
+    return display
+
+def forAllGroupdf(function,df:pd.DataFrame,**arg):
+
+    display = []
+    df_group = df.groupby(['Group'], group_keys=True)
+    for gr,data in df_group:
+        x = function(data,**arg)
         display.append(f"{gr}")
         display.append(x)
         display.append("<br>")

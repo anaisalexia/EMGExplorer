@@ -3,6 +3,15 @@ import os
 from .setup import *
 from .mainwindow_utils import get_item_from_path,Try_decorator,LoggerError_decorator
 
+import sys
+sys.path.append('EMG_Explorer_App/Explorer_package/processing')
+import os
+print(os.environ)
+
+
+import sys,os
+sys.path.append(os.getcwd())
+
 ROOT = 'EMG_Explorer_App\Explorer_package\processing'
 ROOT_MEASUREMENT = 'EMG_Explorer_App\Explorer_package\summary_measurement'
 ROOT_DISPLAY = 'EMG_Explorer_App\Explorer_package\summary_display'
@@ -29,7 +38,6 @@ def apply_jsonFilter(x,pathFile,dictFile=None):
 
     return x  
 
-@LoggerError_decorator
 def apply_jsonFilterGlobal(loader,pathData,pathFile=None,dictFile=None):
     if pathFile != None:
         f = open(f'{PATH_PIPELINE}{pathFile}.json')
@@ -40,6 +48,7 @@ def apply_jsonFilterGlobal(loader,pathData,pathFile=None,dictFile=None):
 
     # apply process for each variable
     if processDict != {}:
+
         for gr in list(pathData.keys()):
             for var in list(pathData[gr].keys()):
                 try:
