@@ -4,40 +4,45 @@ import logging
 logger = logging.getLogger(f'main.{__name__}')
 
 
-def merge2datatree(datatree1:DataTree,datatree2:DataTree):
-    dict1 = datatree1.to_dict()
-    dict2 = datatree2.to_dict()
-    dict1group = list(dict1.keys())
-    for k,xar in dict2.items():
-        dict1[k] = xar
-    return DataTree.from_dict(dict1)
+
 
 
 ### BASE CLASS ###
 
 class MyDataLoader(ABC):
+    """Abstract Class for Loader for .x files. Open the data and have a set of functions to handle the data.
+
+    Args:
+        ABC (_type_): _description_
+    """
 
     def __init__(self,path,name) -> None:
-        self.data
-        self.dict_group
+        self.data = {}
+        self.data_original = {}
+        self.dict_group = {}
         self.path = path
         self.name = name
+        self.attrs = {}
         self.openFile()
+        logger.info(f'File open {name}')
 
     # DATA
     @staticmethod
     @abstractmethod
     def format():
-        return ''
+        """Return the formal of the file that the loader opens"""
+        raise NotImplementedError()
 
     @abstractmethod
     def openFile(self):
-        """Update data
+        """Load .nc file, extract the path of the groups that have data variables and load the attributs. The original data are kept in one variable and are copied in an other one where the filters are applied.
+        // self.data =
+        // self.data_roginal = 
 
         Returns:
             update self.data
         """
-        self.data = []
+        raise NotImplementedError()
 
     @abstractmethod
     def loadGroup(self)->dict:
@@ -46,13 +51,139 @@ class MyDataLoader(ABC):
                                'var_name2' : []}}
         The prupose of this dictionnary is to update the comboBoxes of the interface
         that are used to select the data
+        // self.dict_group = {'':{'':[]}}
 
         """
-        self.dict_group = {'':{'':[]}}
+        raise NotImplementedError()
+
 
     @abstractmethod
-    def getData(self,group,var,channel):
-        """Returns the selected data
+    def loadGroup(self)->dict:
+        """Return a dictionnary with the groups, variables and channels names
+        e.g. : {'group_name': {'var_name1':['channel1','channel2'],
+                               'var_name2' : []}}
+        The prupose of this dictionnary is to update the comboBoxes of the interface
+        that are used to select the data
+        ex: dict group after load {'/': {'Trigger': {}, 'Accelerations': {'axes': ['X', 'Y', 'Z']}, 'HDsEMG': {'Channel': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]}}}
+        """
+        raise NotImplementedError()
+
+
+    # ATTRIBUTS
+    @abstractmethod
+    def loadAttributs(self):
+        """Load the attributs as a dictionnary
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def getAttrs(self):
+        """Return the dictionnary of attributs of the Loader"""
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def saveAttributs(self,attrs):
+        """Not implemented. Save the attribute
+
+        Args:
+            attrs (dict): _description_
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def setAttrs(self,group,variable_newName,attrs_newName,process):
+        """Set the attributs of a variable of the original data
+
+        Args:
+            group (_type_): _description_
+            variable_newName (_type_): _description_
+            attrs_newName (_type_): _description_
+            process (_type_): _description_
+        """
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def init_dataLoader(self,path):
+        """(Re)Initialize the copy of the original data.
+
+        Args:
+            path (_type_): _description_
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def getPath(self):
+        """Return the file path
+
+        Returns:
+            _type_: _description_
+        """
+        raise NotImplementedError()
+        
+    @abstractmethod
+    def getGroup(self):
+        """Return the dictionnary of group/variable/dim/channel
+
+        Returns:
+            _type_: _description_
+        """
+        raise NotImplementedError()
+
+    @abstractmethod  
+    def getName(self):
+        """Return the name of the file
+
+        Returns:
+            _type_: _description_
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def getListGroup(self):
+        """Return a list of the group
+
+        Returns:
+            _type_: _description_
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def getListVariable(self,group=None):
+        """Return a list of the variables in a group"""
+        raise NotImplementedError()
+        
+
+    @abstractmethod
+    def getListDimension(self,group=None,var=None):
+        """Return the list of dimension of a variable in a group if specified 
+
+        Args:
+            group (_type_, optional): _description_. Defaults to None.
+            var (_type_, optional): _description_. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
+        raise NotImplementedError()
+            
+    @abstractmethod
+    def getListChannel(self,group=None,var=None,dim=None):
+        """Return a list of all channels of channels in a specific group/variable/dimension if specified
+
+        Args:
+            group (_type_, optional): _description_. Defaults to None.
+            var (_type_, optional): _description_. Defaults to None.
+            dim (_type_, optional): _description_. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
+        raise NotImplementedError()
+
+
+    @abstractmethod
+    def getDataOriginal(self,group,var,dim,channel):
+        """Returns the original data of a channel as a xarray
 
         Args:
             group (str): _description_
@@ -60,27 +191,85 @@ class MyDataLoader(ABC):
             channel (str): _description_
 
         Returns:
-            np.array: 
+            xarray: 
         """
-        return np.array([])
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def setToDataOriginal(self,group,variable_newName,variable):
+        """Add a new variable in the original data from the modified data
+        Example :         self.data_original[group][variable_newName] = self.data[group][variable].copy(deep=True)
+
+
+        Args:
+            group (str): _description_
+            variable_newName (str): _description_
+            variable (str): _description_
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def getData(self,group,var,dim,channel):
+        """Returns the modified data of a channel as a xarray
+
+        Args:
+            group (str): _description_
+            var (str): _description_
+            channel (str): _description_
+
+        Returns:
+            xarray: 
+        """
+
+        raise NotImplementedError()
     
     @abstractmethod
     def setData(self,group,var,dim,channel,data):
-        pass
-    
-    @abstractmethod
-    def saveData(self):
-        pass
+        """Set data in the modified data
 
-    # ATTRIBUTS
-    @abstractmethod
-    def loadAttributs(self):
-        return {}
+        Args:
+            group (str): _description_
+            var (str): _description_
+            dim (str): _description_
+            channel (str): _description_
+            data (ndarray): _description_
+        """
+        raise NotImplementedError()
     
     @abstractmethod
-    def saveAttributs(self):
-        pass
+    def getDataVariable(self,group,var,dim=None):
+        """Returns the modified data of a variable as a xarray
+
+        Args:
+            group (str): _description_
+            var (str): _description_
+            channel (str): _description_
+
+        Returns:
+            xarray 
+        """
+        raise NotImplementedError()
+        
     
+    @abstractmethod
+    def get_DataFromDict(self,dictData):
+        """Return a list of xarray per variable of the modified data.
+        # example of input {'/': {'Trigger': [], 'Accelerations': ['Y'], 'HDsEMG': ['8', '9']}}
+
+        Args:
+            dictData (_type_): _description_
+        """
+        raise NotImplementedError()
+
+                        
+    @abstractmethod
+    def saveData(self,saving_path):
+        """Save the original data
+
+        Args:
+            saving_path (_type_): _description_
+        """
+        raise NotImplementedError()
     
 
     
@@ -90,6 +279,14 @@ class MyDataLoader(ABC):
 
 
 ### DATALOADER .NC ###
+def merge2datatree(datatree1:DataTree,datatree2:DataTree):
+    dict1 = datatree1.to_dict()
+    dict2 = datatree2.to_dict()
+    dict1group = list(dict1.keys())
+    for k,xar in dict2.items():
+        dict1[k] = xar
+    return DataTree.from_dict(dict1)
+
 def walkDatatree_getPathDataset(node,path):
 
     if node.is_leaf:
@@ -155,29 +352,14 @@ def walkDatatree_getAttrDataset(node):
 
 
 
-# def walkDatatree_getAttrDataset(node):
-#     info = {}
-#     if node.is_leaf:
-#         if node.has_attrs:
-#             dict_node = node.attrs
-            
-#             info[node.name] = dict_node
-#             return info
-#         return info
-                
-#     else: 
-#         for child in node.children:
-#             folder = node.name
-#             info[ folder if folder != None else 'Root'] = walkDatatree_getAttrDataset(node[child])
-    
-#     return info
-
-
-
-
 
 
 class MyDataLoaderNC(MyDataLoader):
+    """Loader for .nc files. Open the data and have a set of functions to handle the data.
+
+    Args:
+        MyDataLoader (_type_): _description_
+    """
 
     def __init__(self,path,name) -> None:
         self.data = {}
@@ -189,18 +371,21 @@ class MyDataLoaderNC(MyDataLoader):
         self.openFile()
         logger.info(f'File open {name}')
 
-        self.fs = 1
-
 
 
     # DATA
     @staticmethod
     def format():
+        """Return the formal of the file that the loader opens
+
+        Returns:
+            _type_: _description_
+        """
         return '.nc'
 
 
     def openFile(self):
-        """Load .nc file and extract the path of the groups that have data variables
+        """Load .nc file, extract the path of the groups that have data variables and load the attributs. The original data are kept in one variable and are copied in an other one where the filters are applied.
 
         Returns:
             update self.data
@@ -208,7 +393,7 @@ class MyDataLoaderNC(MyDataLoader):
         self.data =  datatree.open_datatree(self.path)
         self.data_original = datatree.open_datatree(self.path)
         self.loadGroup()
-        self.init_Fs()
+        self.loadAttributs()
 
     def loadGroup(self)->dict:
         """Return a dictionnary with the groups, variables and channels names
@@ -223,33 +408,32 @@ class MyDataLoaderNC(MyDataLoader):
 
     # ATTRIBUTS
     def loadAttributs(self):
+        """Load the attributs as a dictionnary
+        """
         self.attrs = walkDatatree_getAttrDataset(self.data)
 
     def getAttrs(self):
+        """Return the dictionnary of attributs of the Loader"""
         return self.attrs
     
     def saveAttributs(self,attrs):
-        """_summary_
+        """Not implemented. Save the attribute
 
         Args:
             attrs (dict): _description_
         """
         pass
 
-    def setAttrs(self,group,variable_newName,process):
-        self.data_original[group][variable_newName] = self.data_original[group][variable_newName].assign_attrs({'Processing':str(process)})
-
-    def init_Fs(self):
-        for attr,val in self.attrs.items():
-            if attr in ['sample_frequency']:
-                self.fs = val
-            break
-
-    def getSamplingFrequency(self):
-        return self.fs
+    def setAttrs(self,group,variable_newName,attrs_newName,process):
+        self.data_original[group][variable_newName] = self.data_original[group][variable_newName].assign_attrs({attrs_newName:str(process)})
 
 
     def init_dataLoader(self,path):
+        """(Re)Initialize the copy of the original data.
+
+        Args:
+            path (_type_): _description_
+        """
         for gr in path.keys():
             for var in path[gr].keys():
                 try:
@@ -261,19 +445,40 @@ class MyDataLoaderNC(MyDataLoader):
                     pass # no dim no data for the var
 
     def getPath(self):
+        """Return the file path
+
+        Returns:
+            _type_: _description_
+        """
         return self.path
         
     def getGroup(self):
+        """Return the dictionnary of group/variable/dim/channel
+
+        Returns:
+            _type_: _description_
+        """
         return self.dict_group
     
     def getName(self):
+        """Return the name of the file
+
+        Returns:
+            _type_: _description_
+        """
         return self.name
 
     
     def getListGroup(self):
+        """Return a list of the group
+
+        Returns:
+            _type_: _description_
+        """
         return list(self.dict_group.keys())
 
     def getListVariable(self,group=None):
+        """Return a list of the variables in a group"""
         if group != None:
             group_dict = self.dict_group[group]
             return list(group_dict.keys())
@@ -284,6 +489,15 @@ class MyDataLoaderNC(MyDataLoader):
             return list_var
         
     def getListDimension(self,group=None,var=None):
+        """Return the list of dimension of a variable in a group if specified 
+
+        Args:
+            group (_type_, optional): _description_. Defaults to None.
+            var (_type_, optional): _description_. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
         if group != None:
             if var != None:
                 return list(self.dict_group[group][var].keys())
@@ -302,6 +516,16 @@ class MyDataLoaderNC(MyDataLoader):
             
 
     def getListChannel(self,group=None,var=None,dim=None):
+        """Return a list of all channels of channels in a specific group/variable/dimension if specified
+
+        Args:
+            group (_type_, optional): _description_. Defaults to None.
+            var (_type_, optional): _description_. Defaults to None.
+            dim (_type_, optional): _description_. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
         if group != None:
             group_dict = self.dict_group[group]
             if var != None:
@@ -328,7 +552,7 @@ class MyDataLoaderNC(MyDataLoader):
 
 
     def getDataOriginal(self,group,var,dim,channel):
-        """Returns the selected data
+        """Returns the original data of a channel as a xarray
 
         Args:
             group (str): _description_
@@ -350,7 +574,7 @@ class MyDataLoaderNC(MyDataLoader):
 
     
     def getData(self,group,var,dim,channel):
-        """Returns the selected data
+        """Returns the modified data of a channel as a xarray
 
         Args:
             group (str): _description_
@@ -370,6 +594,15 @@ class MyDataLoaderNC(MyDataLoader):
     
     
     def setData(self,group,var,dim,channel,data):
+        """Set data in the modified data
+
+        Args:
+            group (_type_): _description_
+            var (_type_): _description_
+            dim (_type_): _description_
+            channel (_type_): _description_
+            data (_type_): _description_
+        """
         try:
             if channel.isdigit():
                 channel = int(channel) #could be fix with item instead of text ?
@@ -381,7 +614,7 @@ class MyDataLoaderNC(MyDataLoader):
     
 
     def getDataVariable(self,group,var,dim=None):
-        """Returns the selected data
+        """Returns the modified data of a variable as a xarray
 
         Args:
             group (str): _description_
@@ -389,7 +622,7 @@ class MyDataLoaderNC(MyDataLoader):
             channel (str): _description_
 
         Returns:
-            np.array: 
+            xarray: 
         """
         if dim != None:
             return self.data[group][var][dim]
@@ -397,7 +630,7 @@ class MyDataLoaderNC(MyDataLoader):
     
     def get_DataFromDict(self,dictData):
         # ex from {'/': {'Trigger': [], 'Accelerations': ['Y'], 'HDsEMG': ['8', '9']}}
-        """return a list of xarray per variable
+        """Return a list of xarray per variable of the modified data
 
         Args:
             dictData (_type_): _description_
@@ -419,35 +652,37 @@ class MyDataLoaderNC(MyDataLoader):
         return data_list
 
 
-    def setMultipleData(self,data,pathDict):
-        """
+    # def setMultipleData(self,data,pathDict):
+    #     """ Merge a xarray Sataset to a dataTree
+
+    #     Args:
+    #         data (_type_): xarray Dataset
+    #         pathDict (_type_): _description_
+
+    #     Returns:
+    #         _type_: _description_
+    #     """
+    #     if pathDict in list(self.data.to_dict().keys()):
+    #         print('Path already in file')
+
+    #     datatreeToAdd = DataTree.from_dict({pathDict:data})
+    #     self.data = merge2datatree(self.data,datatreeToAdd)
+
+                        
+
+    def saveData(self,saving_path):
+        """Save the original data
 
         Args:
-            data (_type_): xarray Dataset
-            pathDict (_type_): _description_
-
-        Returns:
-            _type_: _description_
+            saving_path (_type_): _description_
         """
-        if pathDict in list(self.data.to_dict().keys()):
-            print('Path already in file')
+        self.data_original.to_netcdf(saving_path, mode = 'w')
 
-        datatreeToAdd = DataTree.from_dict({pathDict:data})
-        self.data = merge2datatree(self.data,datatreeToAdd)
 
-        
-
-        # fooData = DataTree.from_dict({'/add':foo})
-                
-
-    def saveData(self):
-        pass
-
-    
     
 
 def getDataDatatree(data,group,var,dim,channel):
-    """Returns the selected data
+    """Returns the selected data in a DataTree
 
     Args:
         group (str): _description_
@@ -500,21 +735,34 @@ def xarray_to_dataframe(xarray):
     df = pd.concat([df, pd.DataFrame(rows)])
     return df
 
+
+#########################
+# DATALOADER DICITONNARY#
+#########################
+
+
+
 DATALOADER = {
     '.nc' : MyDataLoaderNC
 }
 
 
-def init_dataLoader(loader,path):
-        for gr in path.keys():
-            for var in path[gr].keys():
-                for dim in path[gr][f'{var}'].keys():
-                    for ch in path[gr][f'{var}'][dim]:
-                        x = loader.getDataOriginal(gr,var,dim,ch).values()                
-                        loader.setData(gr,f'{var}',dim,ch,x)
+# def init_dataLoader(loader,path):
+#     """Initialize the modified data of a Loader with the original data
+
+#     Args:
+#         loader (_type_): _description_
+#         path (_type_): _description_
+#     """
+#     for gr in path.keys():
+#         for var in path[gr].keys():
+#             for dim in path[gr][f'{var}'].keys():
+#                 for ch in path[gr][f'{var}'][dim]:
+#                     x = loader.getDataOriginal(gr,var,dim,ch).values()                
+#                     loader.setData(gr,f'{var}',dim,ch,x)
 
 def load_multiple_files(paths): # load _ multiple files
-    """_summary_
+    """Loading multiple files with the Loader associated with its format.
 
     Args:
         paths (list): _description_

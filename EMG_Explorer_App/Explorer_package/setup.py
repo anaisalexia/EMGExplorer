@@ -1,5 +1,6 @@
 import h5py
 import os
+import sys
 import inspect
 import importlib
 from pathlib import Path
@@ -50,7 +51,20 @@ PATH_PIPELINE = 'EMG_Explorer_App/Explorer_package/processing pipelines/'
 PATH_GLOBAL_PIPELINE = 'EMG_Explorer_App/Explorer_package/global_processing_pipelines/'
 PAHT_LOG = 'Log/'
 
-from .processing_function import MEASUREMENT,MEASUREMENT_NAME,DISPLAY,DISPLAY_NAME,PROCESSING,PROCESSING_NAME
+ROOT = 'EMG_Explorer_App\Explorer_package\processing'
+ROOT_PROCESSINGGLOBAL = 'EMG_Explorer_App\Explorer_package\global_processing'
+ROOT_MEASUREMENT = 'EMG_Explorer_App\Explorer_package\summary_measurement'
+ROOT_DISPLAY = 'EMG_Explorer_App\Explorer_package\summary_display'
+ROOT_RANGEDISPLAY = 'EMG_Explorer_App\Explorer_package\summary_rangeDisplay'
+ROOT_GLOBALPROCESSING = 'EMG_Explorer_App\Explorer_package\global_processing_pipelines'
+
+
+ROOT_REPORT = "EMG_Explorer_App/Explorer_package/global_processing_pipelines/"
+DEFAULT_PATH_SAVE_SUMMARY = 'EMG_Explorer_App/Template/template'
+
+ROOT_TEMPLATE = r"EMG_Explorer_App/Template/template/templateSummary.html"
+
+# from .processing_function import MEASUREMENT,MEASUREMENT_NAME,DISPLAY,DISPLAY_NAME,PROCESSING,PROCESSING_NAME
 
 
 

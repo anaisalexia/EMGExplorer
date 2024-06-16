@@ -5,20 +5,19 @@ from .processing_function import apply_jsonFilterGlobal
 
 
 
-class Canvas(FigureCanvasQTAgg):
-    def __init__(self):
-        self.fig = Figure()
-        self.ax = self.fig.add_subplot(111)
+class Layout(QWidget):
+    """Layout of the Graphic units.
 
-        super().__init__(self.fig)
-
-    def clear(self):
-        self.fig.clear()
-
+    Args:
+        QWidget (_type_): _description_
+    """
+    def __init__(self,nb,nb_v=1):
+        super().__init__()
+        loadUi(f'hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\Layout{nb}_{nb_v}.ui', self)
 
 
 class Layout_Parameters_Type(QWidget):
-    """Layout and interactivity of the setting of on graph. It enables the user to chose a type of graph and select the displayed channels
+    """Layout and interactivity of the setting of one graphic units. It enables the user to chose a type of graph and select the displayed channels
 
     Args:
         QWidget (_type_): _description_
@@ -37,7 +36,7 @@ class Layout_Parameters_Type(QWidget):
         self.selectedData = {}
         self.selectedDataPath = {}
 
-    # tab data interactivity
+        # tab data interactivity
         self.selectDataWindow = None
         self.groupBox_dataSelection.clicked.connect(self.oc_groupBoxChecked)
         self.button_select.clicked.connect(self.oc_selectData)
@@ -99,10 +98,10 @@ class Layout_Parameters_Type(QWidget):
 
 
 class OneGraph():
-    """It is the base structure of one plot, it comprises: the layout of the plot, the layout of the parameters.
+    """It is a Graphic Units. It is the base structure of one plot, it comprises: the layout of the plot, the layout of the parameters. It makes the connexion between the interface and the plots.
     """
     def __init__(self,frame_graph,layout_parameters,i,parent) -> None:
-        """Creates an object that will manage the event of a box
+        """Creates a Widget that will mnanage the type of plot displayed by the user.
 
         Args:
             frame_graph (frame): frame of the main windows were the widget should be displayed
@@ -181,9 +180,6 @@ class OneGraph():
             self.setPlot(PLOT[type_])
             # add the setting of the plot to the graph setting
             self.add_graphUi_to_layout()
-            # draw 
-            # data = self.ui_graph.get_data()
-            # self.ui_graph.draw(data)
             self.update_drawing()
         else:
             self.ui_graph.clearGraph()
@@ -191,23 +187,31 @@ class OneGraph():
     
     
     def get_selectedData(self):
+        """Return selected data
+
+        Returns:
+            _type_: _description_
+        """
         return self.selectedData
 
     # GRAPH
     def retrieve_Data(self):
+        """Retrieve the current loader and the path to the selected Data.
+
+        Returns:
+            _type_: _description_
+        """
         if not self.ui_parameters.isDataIndependent():
-            # retrieve data from the mainwindow throught the plot (the plot dictate the data it needs)
+            # retrieve data from the mainwindow throught the plot (the plot dictates the data it needs)
+            # loader, path = self.parent.get_dataPath()
             loader, path = self.ui_graph.get_dataPath()
-            print('In One Graph, retrived not independent data')
 
         else:
             #retrieve datapath from the parameters and the loader
             loader = self.parent.get_currentLoader()
             path = self.ui_parameters.get_dataPath()
-            # {'/': {'Trigger': [], 'Accelerations': {'axes': ['X']}, 'HDsEMG': {'Channel': []}}}  
-            print('In One Graph, retrived independent data')
+            # Example of path {'/': {'Trigger': [], 'Accelerations': {'axes': ['X']}, 'HDsEMG': {'Channel': []}}}  
 
-        print('In One Graph, the retrieved loader and data are : ', loader,path)
         return loader,path
     
     
@@ -226,34 +230,9 @@ class OneGraph():
             if dictGlobalProcessing != {}:
                 apply_jsonFilterGlobal(loader,path,pathFile=None,dictFile=dictGlobalProcessing)
 
-            # # transmit data to draw in forms of a list of xarray
-            # data = []
-            # title = ""
-            # for gr in list(path.keys()):
-            #     for var in list(path[gr].keys()):
-            #         title += var + " "
-            #         for dim in list(path[gr][var].keys()):
-            #             for ch in path[gr][var][dim]:
-            #                 title += f" {ch} "
-            #                 data.append(loader.getData(gr,var,dim,ch))
                             
             kwargs = {}
-            # try:
-            #     fs = loader.getSamplingFrequency()
-            #     kwargs['fs'] = fs
-            # except:
-            #     pass
-
-
-            # dict_info = {'title':title,'xlabel':'time','ylabel':'Amplitude'}
-            # self.ui_graph.setInformation(**dict_info)
-            # self.ui_graph.draw(data,**kwargs) # list of xarray
-
-            self.ui_graph.draw(loader,path,**kwargs) # list of xarray
-
-
-
-    
+            self.ui_graph.draw(loader,path,**kwargs)
 
 
     def setPlot(self,plot):
@@ -273,6 +252,11 @@ class OneGraph():
             self.ui_graph.clearGraph()
 
     def saveState(self):
+        """Save the state of the graph in a dicitonnary (id, type, selectedDate)
+
+        Returns:
+            _type_: _description_
+        """
         state = {'id':self.id,
                  'type' : self.ui_parameters.comboBox_type.currentText(),
                  'selectedDataState' : self.ui_parameters.saveState()}
@@ -280,25 +264,33 @@ class OneGraph():
         return state
 
     def restoreState(self,state):
+        """Restore the state of the graph with a dictionnary.
+
+        Args:
+            state (_type_): _description_
+        """
         type_ = state['type']
         self.id = state['id']
         self.ui_parameters.restoreState(state['selectedDataState'])
         self.ui_parameters.comboBox_type.setCurrentText(type_)
-        #select comboBox Type 
-        pass
 
 
 
 
-class Layout(QWidget):
-    def __init__(self,nb,nb_v=1):
-        super().__init__()
-        loadUi(f'hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\Layout{nb}_{nb_v}.ui', self)
+
 
 
 
 
 class WindowChannelSelection(QWidget):
+    """Display a windows that allows the user to select the channels to be displayed.
+
+    Args:
+        QWidget (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     sendData = pyqtSignal('PyQt_PyObject')
     
     def __init__(self,parent):
@@ -315,6 +307,7 @@ class WindowChannelSelection(QWidget):
         self.button_deselectAll.clicked.connect(partial(self.oc_deselectAll,self.tree.invisibleRootItem()))
         self.button_Select.clicked.connect(self.oc_select)
 
+        # Create a tree of checkBox
         for gr in list(dict_group.keys()):
             item_group = QtWidgets.QTreeWidgetItem(self.tree)
             item_group.setText(0,str(gr))
@@ -341,6 +334,11 @@ class WindowChannelSelection(QWidget):
         self.layout_tree.addWidget(self.tree)
 
     def oc_deselectAll(self,item):
+        """Deselect all channels
+
+        Args:
+            item (_type_): _description_
+        """
         nb_children = item.childCount()
         item.setCheckState(0, Qt.Unchecked)
 
@@ -351,6 +349,11 @@ class WindowChannelSelection(QWidget):
   
 
     def oc_selectAll(self,item):
+        """Select all channels
+
+        Args:
+            item (_type_): _description_
+        """
         nb_children = item.childCount()
         item.setCheckState(0, Qt.Checked)
 
@@ -360,6 +363,13 @@ class WindowChannelSelection(QWidget):
       
 
     def get_selectedItems(self): 
+        """Return a dictionnary as a tree of the selected channel
+        Example : {'/': {'Trigger': [], 'Accelerations': {'axes': ['Y']}, 'HDsEMG': {'Channel': ['6', '10', '11', '12']}}}
+
+
+        Returns:
+            _type_: _description_
+        """
         path = {}
         loader = self.p.get_currentLoader()
         dict_group = loader.getGroup()
@@ -384,7 +394,7 @@ class WindowChannelSelection(QWidget):
                         if itemCh.checkState(0) == Qt.Checked :
                             path[itemGr.text(0)][itemVar.text(0)][itemdim.text(0)].append(itemCh.text(0))
 
-
+        # not used : get the paht but using recursive function
         # def has_childLeaf(item):
         #     nb_children = item.childCount()
         #     for i in range(nb_children):
@@ -413,8 +423,9 @@ class WindowChannelSelection(QWidget):
         return path
 
     def oc_select(self):
+        """Emit the selected data with the signal sendData
+        """
         dictData = self.get_selectedItems()
-        print(f'In Multiple channel selection, the selected data are {dictData}')
         # eg: {'/': {'Trigger': [], 'Accelerations': {'axes': ['Y']}, 'HDsEMG': {'Channel': ['6', '10', '11', '12']}}}
         self.sendData.emit(dictData)
 

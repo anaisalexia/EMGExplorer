@@ -1,37 +1,28 @@
 from .setup import *
 
 
-# data =[{
-#         "Courses": ["Math", "Science", "English"]
-#     },
-#     {
-#         "Cars": ["Ford", "BMW", "Mercedes"]
-#     }
-# ]
 
-#   combo = ComboBoxExpandable()
-#         combo.setData(data)
 
-#         result_label = QtWidgets.QLabel()
-
-#         combo.currentTextChanged.connect(result_label.setText)
-#         combo.pathChanged.connect(print)
-
-#         lay = QtWidgets.QFormLayout(self)
-#         lay.addRow("Select: ", combo)
-
-def menu_from_dict(dict_):
-    menu = {}
-    list_k = []
-    for k,v in dict_.items():
-        if isinstance(v,dict):
-            menu[k] = menu_from_dict(v)
-        else:
-            return list(dict_.values())
+# def menu_from_dict(dict_):
+#     menu = {}
+#     list_k = []
+#     for k,v in dict_.items():
+#         if isinstance(v,dict):
+#             menu[k] = menu_from_dict(v)
+#         else:
+#             return list(dict_.values())
         
 
 
 class comboBoxCheckable(QtWidgets.QPushButton):
+    """Create a checkable Menu from a PushButton.
+
+    Args:
+        QtWidgets (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
 
     currentTextChanged = QtCore.pyqtSignal(list)
 
@@ -70,10 +61,7 @@ class comboBoxCheckable(QtWidgets.QPushButton):
         else:
             self.all.setChecked(False)
             self.none.setChecked(False)
-
-
         self.currentTextChanged.emit(self.list_checked())
-        print(self.list_checked())
 
     def list_checked(self):
         list_checked = [action.text() for action in self.menu.actions() if (action.isChecked()) and (action.text()!='All') and (action.text()!='None') ]
@@ -106,9 +94,8 @@ class comboBoxCheckable(QtWidgets.QPushButton):
         
 
 
-# retrouver la référence internet
 class ComboBoxExpandable(QtWidgets.QPushButton):
-    """Exandable comboBox
+    """Exandable comboBox : Create a menu from a comboBox
 
     Args:
         QtWidgets (_type_): _description_
@@ -159,8 +146,10 @@ class ComboBoxExpandable(QtWidgets.QPushButton):
 
 
 
-
+# not used
 class PopupMenuParameter2(parameterTypes.ActionParameter):
+    """ Not used. Pop Menu for PyQtGrpah Parameter tree
+    """
     pathChanged = pyqtSignal(list)
 
     def __init__(self, **opts):
@@ -178,19 +167,4 @@ class PopupMenuParameter2(parameterTypes.ActionParameter):
     def oc_pathChanged(self,path):
         self.pathChanged.emit(path)
 
-
-
 registerParameterType('popupmenu', PopupMenuParameter2, override=True)
-
-# # Create parameters
-# params = [
-#     {'name': 'PopupMenuParameter', 'type': 'popupmenu', 'title': '+'},
-# ]
-
-# # Create parameter tree and set parameters
-# param_tree = ParameterTree()
-# parameter = Parameter.create(name='params', type='group', children=params)
-
-# param_tree.setParameters(parameter)
-# parameter.child('PopupMenuParameter').button.setData({"1":{"3":"4","5":"6"}})         
-    

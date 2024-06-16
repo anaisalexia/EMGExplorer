@@ -5,11 +5,17 @@ from PyQt5.QtCore import Qt
 import os
 from io import StringIO
 import os
-
 log_stream = StringIO() 
 now = datetime.now()
+pg.setConfigOption('foreground', 'k')
+pg.setConfigOption('background', 'w')
+
+
+# https://github.com/fbjorn/QtWaitingSpinner
+
+
                    
-# LOGGER
+# --------- LOGGER ---------------------
 logger = logging.getLogger('main')
 logging.basicConfig( format='%(name)s - %(levelname)s - %(message)s', level=logging.DEBUG) 
 
@@ -33,9 +39,23 @@ loggerDebugFile = logging.FileHandler(filename=CURRENT_PATH_LOG_DEBUG, mode = "w
 loggerDebugFile.setLevel(logging.DEBUG)
 logger.addHandler(loggerDebugFile)
 
+class OutputHandler(logging.Handler,QWidget):
+    """Logging Handler to display a warning message or error. Not fully implemented
 
-pg.setConfigOption('foreground', 'k')
-pg.setConfigOption('background', 'w')
+    Args:
+        logging (_type_): _description_
+        QWidget (_type_): _description_
+    """
+    log_received = pyqtSignal(str)
+
+    def __init__(self) -> None:
+        logging.Handler.__init__(self)
+        QWidget.__init__(self)
+
+    def emit(self, record):
+        if record.levelno != logging.DEBUG:
+            self.log_received.emit(record.getMessage())
+
 
 class LogWindow(QWidget):
     def __init__(self):
@@ -65,11 +85,16 @@ class LogWindow(QWidget):
             f  = open(CURRENT_PATH_LOG_INFO, "r")
             self.label_wholeLog.setText(log_stream.getvalue())
         
-
-    
+  # --------- END LOGGER ---------------------
+ 
 
 
 class EMGExplorer(QMainWindow):
+    """QMainWindow, main window of the EMG Explorer. It instantiates the Widgets.
+
+    Args:
+        QMainWindow (_type_): _description_
+    """
 
 
     def __init__(self):
@@ -77,26 +102,13 @@ class EMGExplorer(QMainWindow):
         # Loading of the UI
         loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\EMGExplorer_mainwindow_base2.ui', self)
 
+        # Initialisation Log
         self.log = LogWindow()
         self.layout_log.addWidget(self.log)
-
-        class OutputHandler(logging.Handler,QWidget):
-            log_received = pyqtSignal(str)
-
-            def __init__(self) -> None:
-                logging.Handler.__init__(self)
-                QWidget.__init__(self)
-
-            def emit(self, record):
-                if record.levelno != logging.DEBUG:
-                    self.log_received.emit(record.getMessage())
-
         warning_handler = OutputHandler()
         warning_handler.log_received.connect(self.log.set_labelLog)
         warning_handler.log_received.connect(self.log.update_log)
         logger.addHandler(warning_handler)
-
-        
 
 
         # Initialisation of variables
@@ -104,9 +116,6 @@ class EMGExplorer(QMainWindow):
         self.wnewFilter = None
         self.layout = Layout(3,1)
         self.dock = {}
-       
-
-        #
         self.dataLoader = {}
         self.layout_param = self.layout_parameters
         self.path_globalProcessing = ['None']
@@ -127,50 +136,34 @@ class EMGExplorer(QMainWindow):
         
         self.nb_layout = 3
         self.nb_version = 1
-        ## GRAPH
-
-        self.time = np.arange(100)
-        self.signal = np.random.random(100)
         self.current_id = 0
+
+
+        # self.time = np.arange(100)
+        # self.signal = np.random.random(100)
+
+
         # Restores the previous state of the app
         self.restoreSettings()
         self.update_list_layout_graph()
         self.restoreGraph()
-        # self.initialize_layout_graph()
-        # SETTINGS INIT
-        # self.setting = {0:OneSetting(None,'Custom parameter')}
-        
-
-        # self.paramtree = Filters(None)
-        # self.layout_setting.addWidget(self.paramtree.tree)
-        # self.button_openJson.clicked.connect(self.oc_openFilter)
-        # self.button_clearFilter.clicked.connect(self.paramtree.clearTree)
-
-        # self.comboExpandable = ComboBoxExpandable()
-        # self.comboExpandable.setData(PROCESSING_NAME)
-        # self.layout_expComboBox.addWidget(self.comboExpandable)
-
-        # self.comboExpandable.pathChanged.connect(self.oc_add_filter)
-        # self.button_saveFilter.clicked.connect(self.oc_saveFilter)
-
-        # Initialization Single Processing window
-        self.widget_singleProcessing = SingleProcessing(self)
-        self.layout_singleProcessing.addWidget(self.widget_singleProcessing)
-        self.widget_singleProcessing.apply.connect(self.updateAllGraph)
-        # self.widget_singleProcessing.processingSaved.connect(self.update_comboBoxGlobalProcessing)
-
-
-        # Initialization Global Processing window
-        self.widget_globalProcessing = GlobalProcessingTab(self)
-        self.layout_globaProcessing.addWidget(self.widget_globalProcessing)
-        self.widget_globalProcessing.processingSaved.connect(self.update_comboBoxGlobalProcessing)
+    
+        # Initializes the processing widgets
+        self.init_processingWidget()
         
         self.init_comboBoxGlobalProcessing()
-        
         self.interactivity_fileSystem()
         self.restoreGlobalProcessing()
 
-        # QShortcut( 'D' ).activated.connect( lambda x : self.comboBox_dim.setCurrentText(int(self.comboBox_dim.currentText()) + 1 ))
+
+        # Initialisation shortcut
+        self.init_shortcut()
+
+        logger.info('Initialisation of the Interface done')
+        self.show()
+
+
+    def init_shortcut(self):
         shortcut = QKeySequence(Qt.Key_D)
         self.shortcut = QShortcut(shortcut, self)
         self.shortcut.activated.connect(lambda : self.nextChannel(1))
@@ -179,20 +172,18 @@ class EMGExplorer(QMainWindow):
         self.shortcut = QShortcut(shortcut, self)
         self.shortcut.activated.connect(lambda : self.nextChannel(-1))
 
-        logger.info('Initialisation of the Interface finished')
-        self.show()
-
     def nextChannel(self,i):
         ch = int(self.comboBox_dim.currentText()) + i
         self.comboBox_dim.setCurrentText(str(ch))
         self.oc_comboBox_dim_change()
 
 
-    def updateAllGraph(self):
-        for i,graph in self.dict_layout_graph.items():
-            graph.update_drawing()
+    
 
-    #### Global processing ####
+
+
+
+    #### Global processing ComboBox ####
     def init_comboBoxGlobalProcessing(self):
         self.comboBoxGlobalProcessing = ComboBoxExpandable()
         self.update_comboBoxGlobalProcessing()
@@ -227,42 +218,18 @@ class EMGExplorer(QMainWindow):
     #### end Global processing ####
 
 
-  
+    ####  Processing Widget ####
+    def init_processingWidget(self):
+        # Initialization Single Processing window
+        self.widget_singleProcessing = SingleProcessing(self)
+        self.layout_singleProcessing.addWidget(self.widget_singleProcessing)
+        self.widget_singleProcessing.apply.connect(self.updateAllGraph)
 
 
-    #### Local Processing ####
-    # def oc_openFilter(self):
-    #     # get path
-    #     path = QFileDialog.getOpenFileName(self, 'Open File',)
-    #                                    #"/home/jana/untitled.png",
-    #                                 #    "Json (*.json)")
-    #     #open filter
-    #     print('path open is', path)
-    #     self.paramtree.LoadJson(path[0])
-
-    # def oc_clearFilter(self):
-    #     self.paramtree.clearTree()
-
-
-    # def oc_add_filter(self,path):
-    #     """add a filter to the pipeline
-
-    #     Args:
-    #         path (str): path to the clicked section of the menu. eg ['group 1','name']
-    #     """
-    #     self.paramtree.addNew(get_item_from_path(PROCESSING,path),path )
-
-    # def oc_saveFilter(self):
-    #     dictjson = self.paramtree.setting_to_json()
-    #     namepath = QFileDialog.getSaveFileName(self, 'Save File',
-    #                                    #"/home/jana/untitled.png",
-    #                                    "Json (*.json)")
-    #     if os.path.exists(f'{namepath[0]}.json'):
-    #         print('the file exist already')
-    #     else:
-    #         with open(f'{namepath[0]}.json', 'w') as f:
-    #             json.dump(dictjson, f)
-    #### end Local Processing ####
+        # Initialization Global Processing window
+        self.widget_globalProcessing = GlobalProcessingTab(self)
+        self.layout_globaProcessing.addWidget(self.widget_globalProcessing)
+        self.widget_globalProcessing.processingSaved.connect(self.update_comboBoxGlobalProcessing)
 
 
     #### Getter, data, path, loader ####
@@ -277,6 +244,12 @@ class EMGExplorer(QMainWindow):
         return loader.getData(group,var,dim,ch)
     
     def get_dataChannelPath(self):
+        """Return the current loader and a path to the currently selected channel 
+
+
+        Returns:
+            _type_: _description_
+        """
         file_name = self.listWidget_file.currentItem().text()
         loader = self.dataLoader[file_name]
         group = self.comboBox_group.currentText()
@@ -298,7 +271,7 @@ class EMGExplorer(QMainWindow):
         return loader.getDataVariable(group,var,dim)
     
     def get_dataVariablePath(self):
-        """Return a path to all channel of one variable
+        """Return the current loader and a path to all channel of the currently selected variable
 
         Returns:
             _type_: _description_
@@ -313,6 +286,11 @@ class EMGExplorer(QMainWindow):
         return loader,dictPath
 
     def get_currentLoader(self):
+        """Return the loader of the currently selected file.
+
+        Returns:
+            _type_: _description_
+        """
         try:
             file_name = self.listWidget_file.currentItem().text()
             return self.dataLoader[file_name]
@@ -324,17 +302,26 @@ class EMGExplorer(QMainWindow):
     
     #### end Getter, data, path, loader #### 
     
-    # def get_currentPlot(self):
-    #     return self.dict_layout_graph[self.current_id]
+
 
     #### Layout of the Graphs, List of Graph, Graphs ####
     def clearAllPlot(self):
         for plot in list(self.dict_layout_graph.values()):
            plot.clearPlot() 
+    
+    def updateAllGraph(self):
+        # for i,graph in self.dict_layout_graph.items():
+        #     graph.update_drawing()
+        for plot in self.dict_layout_graph.values():
+            try:
+                plot.update_drawing()
+            except Exception as e:
+                logger.error(f"Update drawing - error {e}")
+
 
     def update_list_layout_graph(self):
         """Updates the variable dict_layout_graph
-        Create a dictionnary with the layout that can be used to display graphs 
+        Create a dictionnary with objects of the class Graph that can be used to display plots.
         { id : OneGraph }
         """
         self.dict_layout_graph = {}
@@ -347,7 +334,7 @@ class EMGExplorer(QMainWindow):
 
       
     def oc_update_layout_graph(self,nb,nb_v):
-        """Changes the general layout of the graphs and update the displayed plot
+        """Changes the general layout of the graphs and update the displayed plots.
 
         Args:
             nb (int): number of graphs on the layout
@@ -366,13 +353,11 @@ class EMGExplorer(QMainWindow):
     #### end Layout of the Graphs, List of Graph, Graphs ####
 
 
-    # def update_parameters_win(self,graph_id):
-    #     param = self.dict_displayed_graph[graph_id]['param']
-    #     # if the same type of graph is displayed
 
 
 
-    #### Menu Action functions ####
+
+    #### Menu Action functions #### 
     def oc_newFilter(self):
         if self.wnewFilter is None:
             # self.wnewFilter = NewFilterWindow()
@@ -419,6 +404,7 @@ class EMGExplorer(QMainWindow):
 
     #### Metadata Tab ####
     def oc_itemPressed(self, item, int_col):
+        """ Set the text of a meta data """
         if int_col!=0:
             text, ok = QInputDialog().getText(self, "input",
                                             "data:", QLineEdit.Normal,
@@ -433,7 +419,7 @@ class EMGExplorer(QMainWindow):
 
     #### Saving and restoring Layout #### 
     def restoreSettings(self):
-        """Restores the last state of the app
+        """Restores the last state of the application
         """
         name_folder = 'ExplorerEMG'
         name_seting = 'MyLayout'
@@ -487,6 +473,8 @@ class EMGExplorer(QMainWindow):
         
 
     def restoreGraph(self):
+        """Restores the state of the last Graph displayed on the application
+        """
         name_folder = 'ExplorerEMG'
         name_seting = 'MyLayout'
 
@@ -502,6 +490,8 @@ class EMGExplorer(QMainWindow):
             logger.error(f'Restore Setting - Graph settings could not be restored : {e}')
 
     def restoreGlobalProcessing(self):
+        """Selects the name of the last Global Processing used in the applicaiton.
+        """
         try:
             name_folder = 'ExplorerEMG'
             name_seting = 'MyLayout'
@@ -513,7 +503,7 @@ class EMGExplorer(QMainWindow):
             logger.error(f'Restore Setting - Global Processing settings could not be restored : {e}')
 
     def closeEvent(self, event):
-        """Function triggered when the mainwindow is closed
+        """Function triggered when the mainwindow is closed. It saves the stats if the layout, splitters, Graphs and Global Processing.
 
         Args:
             event ( ): event
@@ -562,9 +552,14 @@ class EMGExplorer(QMainWindow):
     #### FILES MANAGEMENT ####
 
     def oc_load_files(self):
-        # load the paths
+        """Opens a windows to select the files to be loaded. The data of the files are extracted and the Loader corresponding to each files is 
+        stored in self.dataLoader. The name of the file are then added to the ListWidget.
+        self.dataLoader[i] = Loader()
+        """
+        # retrieve the paths
         files,extension = QFileDialog.getOpenFileNames(self, 'Open file',  'C:\\Users\\mtlsa\\Documents\\UTC\\GB05\\TX\\Python_EMGExplorer\\data',"files (*.*)")
         
+        # load the Loaders
         data = load_multiple_files(files)
         list_file = self.dataLoader.keys()
         for name_file in data.keys():
@@ -575,21 +570,21 @@ class EMGExplorer(QMainWindow):
                 data.pop(name_file)
                 logger.warning(f"Explorer - File {name_file} not loaded, it was already in the list")
 
-        # update the list
+        # update the list of files names
         for loader in data.keys():
             self.listWidget_file.addItem(loader)
 
 
     def oc_remove_files(self):
+        """Removes all the stored files from the listWidget and dictionnary of Loaders"""
         self.listWidget_file.clear()
         self.dataLoader = {}
 
     
 
-    # combobox file system update  
+    # file system update  
     def update_fileSystem_comboBox_Group(self):
-        print('update group')
-        """Add the group paths to the comboBox
+        """Add the groups'name corresponding to the selected file to the dedicated comboBox
         """
         # remove previous items
         self.comboBox_group.clear()
@@ -606,8 +601,7 @@ class EMGExplorer(QMainWindow):
 
 
     def update_fileSystem_comboBox_Variable(self):
-        print('update var')
-        """Add the data variables that matches the selected group in the comboBox
+        """Add the data variable names that matche the selected group to the dedicated comboBox
         """
         # remove previous items
         self.comboBox_variable.clear()
@@ -621,8 +615,7 @@ class EMGExplorer(QMainWindow):
 
 
     def update_fileSystem_comboBox_Channel(self):
-        print('update ch')
-        """Add the channels that matches with the selected variables
+        """ Add the channel names that matche the selected group/var to the dedicated comboBox. It then triggers the update of the plots
         """
         self.comboBox_dim.clear()
 
@@ -630,7 +623,6 @@ class EMGExplorer(QMainWindow):
         dict_group = self.dataLoader[file_name].dict_group
         group = self.comboBox_group.currentText()
         var = self.comboBox_variable.currentText()
-
 
         dims = list(dict_group[group][var].keys())
 
@@ -642,17 +634,22 @@ class EMGExplorer(QMainWindow):
             self.label_timeline_dim.setText('no dim')
             self.comboBox_dim.addItem('None')
 
-        self.oc_comboBox_dim_change()
+        # self.updateAllGraph()
 
 
     # file system interactivity
-    def oc_ListWidget_change(self,item):    
+    def oc_ListWidget_change(self,item):
+        """Update the list of groups/var/channel displayed that correspond to the currently selected file.
+        Load the attributs of the new selected file.
+        """    
+        # update the variable shown in Global Processing Widget
         self.widget_globalProcessing.updateComboBox(self.get_currentLoader().getListVariable())
 
+        # Update the comboBox group and chose the last selected group name if any
         last_selection = self.comboBox_group.currentText()
         self.update_fileSystem_comboBox_Group()
         self.comboBox_group.setCurrentIndex(np.max([0,self.comboBox_group.findText(last_selection)])) 
-        # find TExt return -1 if there is no match
+        # findText returns -1 if there is no match
 
         # update comboBox variable
         self.oc_comboBox_group_change()
@@ -662,7 +659,6 @@ class EMGExplorer(QMainWindow):
         loader = self.get_currentLoader()
         loader.loadAttributs()
 
-
         if loader.attrs:
             self.treeWidget.clear()
             walkDatatree_setAttrDataset(loader.attrs,self.treeWidget)
@@ -670,12 +666,12 @@ class EMGExplorer(QMainWindow):
        
 
     def oc_comboBox_group_change(self,):
-        """When triggered, the list of variable is changed, the plot are eventually cleared or updated
+        """Update the list of variables, the list of channel and the plots. It choses the last selected variable if present in the new list of variables.
         """
+        # update the list of variables and chose the last selected variable if there is a matche
         last_selection = self.comboBox_variable.currentText()
-        # update the list of variables
-
         self.update_fileSystem_comboBox_Variable()
+        # looks for a match between the last selected variable and the new list of variables
         foundText = self.comboBox_variable.findText(last_selection)
         self.comboBox_variable.setCurrentIndex(np.max([0,foundText]))
 
@@ -684,25 +680,28 @@ class EMGExplorer(QMainWindow):
             self.clearAllPlot()
 
         else:
-            self.oc_comboBox_dim_change()
+            self.updateAllGraph()
 
       
     def oc_comboBox_variable_change(self,):
-        """When a variable is selected, the list of displayable channels are changed
+        """Updates the list of displayable channels are changed and the graph are updated
         """
         self.update_fileSystem_comboBox_Channel()
+        self.updateAllGraph()
+
 
     def oc_comboBox_dim_change(self,):
-        for plot in self.dict_layout_graph.values():
-            try:
-                plot.update_drawing()
-            except:
-                pass
+        """Updates the graphs
+        """
+        self.updateAllGraph()
 
+
+    
 
     def interactivity_fileSystem(self):
+        """Initialize the interactivity of the file system
+        """
         self.listWidget_file.currentItemChanged.connect(self.oc_ListWidget_change)
-
         self.comboBox_group.textActivated.connect(self.oc_comboBox_group_change)
         self.comboBox_variable.textActivated.connect(self.oc_comboBox_variable_change)
         self.comboBox_dim.textActivated.connect(self.oc_comboBox_dim_change)

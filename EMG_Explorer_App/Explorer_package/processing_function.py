@@ -1,58 +1,74 @@
 from importlib.machinery import SourceFileLoader
-import os
 from .setup import *
 from .mainwindow_utils import get_item_from_path,Try_decorator,LoggerError_decorator
 
-import sys
 sys.path.append('EMG_Explorer_App/Explorer_package/processing')
-import os
-print(os.environ)
-
-
-import sys,os
+sys.path.append('EMG_Explorer_App/Explorer_package/global_processing')
 sys.path.append(os.getcwd())
 
-ROOT = 'EMG_Explorer_App\Explorer_package\processing'
-ROOT_MEASUREMENT = 'EMG_Explorer_App\Explorer_package\summary_measurement'
-ROOT_DISPLAY = 'EMG_Explorer_App\Explorer_package\summary_display'
-ROOT_RANGEDISPLAY = 'EMG_Explorer_App\Explorer_package\summary_rangeDisplay'
-
-ROOT_GLOBALPROCESSING = 'EMG_Explorer_App\Explorer_package\global_processing_pipelines'
 logger = logging.getLogger('main')
+
+
 
 @LoggerError_decorator
 def apply_jsonFilter(x,pathFile,dictFile=None):
-    if pathFile != None:
-        f = open(f'{PATH_PIPELINE}{pathFile}.json')
-        data = json.load(f)
-    else:
-        data = dictFile
+    """Apply a single processing pipeline described in a JSON file to an array.
+
+    Args:
+        x (array): _description_
+        pathFile (str): path to the JSON file that contains the processing pipeline
+        dictFile (_type_, optional): _description_. Defaults to None.
+
+    Returns:
+        array: filtered array
+    """
+    try: 
+        if pathFile != None:
+            f = open(f'{PATH_PIPELINE}{pathFile}.json')
+            data = json.load(f)
+        else:
+            data = dictFile
+
+    except Exception as e:
+        logger.error(f"Application Single Filter - JSON file for single processing could not be loaded : {e}")
+        return x
+
 
     for nb,process in data.items():
-        print(process)
-        func = PROCESSING[process['path'][0]][process['name']]
-        arg = process['arguments']
-        arg[list(arg.keys())[0]] = x
-        print('list arg', arg,x)
-        x = func(**arg) 
+        try:
+            func = PROCESSING[process['path'][0]][process['name']]
+            arg = process['arguments']
+            arg[list(arg.keys())[0]] = x
+            x = func(**arg) 
+        except Exception as e:
+            logger.error(f"Application Single Filter - Processing {nb} ({process}) could not be applied : {e}")
 
     return x  
 
+
+
 def apply_jsonFilterGlobal(loader,pathData,pathFile=None,dictFile=None):
+    """Apply the processing steps described in a JSON file to the data selected by a path and contained in a Loader.
+
+    Args:
+        loader (Loader): _description_
+        pathData (list): _description_
+        pathFile (str, optional): _description_. Defaults to None.
+        dictFile (dictionnary, optional): _description_. Defaults to None.
+    """
     if pathFile != None:
-        f = open(f'{PATH_PIPELINE}{pathFile}.json')
+        f = open(f'{PATH_GLOBAL_PIPELINE}{pathFile}.json')
         processDict = json.load(f)
 
     else:
         processDict = dictFile
 
-    # apply process for each variable
+    # apply process for each groups and variables
     if processDict != {}:
 
         for gr in list(pathData.keys()):
             for var in list(pathData[gr].keys()):
                 try:
-                    # find the accurate 
                     try:
                         processVar = processDict[var]
                     except:
@@ -60,9 +76,11 @@ def apply_jsonFilterGlobal(loader,pathData,pathFile=None,dictFile=None):
                         continue
 
                     for nb,process in processVar.items():
-                        func = PROCESSING[process['path'][0]][process['name']]
+                        # fetch the function 
+                        func = PROCESSINGGLOBAL[process['path'][0]][process['name']]
                         arg = process['arguments']
                         arg_copy = arg.copy()
+                        # delete the argument that have no values
                         for k,v in arg_copy.items():
                             if v == None:
                                 del arg[k]
@@ -72,6 +90,8 @@ def apply_jsonFilterGlobal(loader,pathData,pathFile=None,dictFile=None):
 
                 except Exception as e:
                     logger.error(f"Application Global Filter - Processing of var {var} failed : {e}")
+
+
 
 
 
@@ -113,10 +133,15 @@ def generate_processing_dict(ROOT):
             fc = getattr(mod,fc_name)
             if (fc_name[0] != '_') & (fc_name not in requirements_list):
                 PROCESSING[name][fc_name] = fc
+
     return PROCESSING
+
+
+
 
 def menu_from_dict(dict_):
     """Create a dictionnary of path and names using the keys of a embbeded dictionnaries.
+    Example : {'processing_fichier1': ['butterfilter', 'butterfilter_bandpass', 'double_threshold'], ' processing_fichier2' : [function1, function2]}
 
     Args:
         dict_ (dict): embedded dictionnaries
@@ -137,14 +162,33 @@ def menu_from_dict(dict_):
 
 
 
-
 def has_folder(ROOT):
+    """Check if the folder has folder.
+
+    Args:
+        ROOT (str): path to a folder
+
+    Returns:
+        bool: _description_
+    """
     for path in os.listdir(ROOT):
         if os.path.isdir( ROOT + '\\' + path ):
             return True
     return False
 
+
+
+
 def dictOfFiles_from_EmbeddedFolders(ROOT):
+    """Returns a dictionnary of a path of files contain in embedded folders. 
+    Example: {'Acceleration': ['global_processing3.json'], 'EMG': {'folder1': [], 'folder2': ['global_processing2.json']}, 'general': ['global_processing.json']}
+
+    Args:
+        ROOT (str): path to a folder
+
+    Returns:
+        dictionnary: _description_
+    """
     list_process = []
     PROCESS = {}
 
@@ -162,11 +206,15 @@ def dictOfFiles_from_EmbeddedFolders(ROOT):
 
 
     return PROCESS
-#{'Acceleration': ['global_processing3.json'], 'EMG': {'folder1': [], 'folder2': ['global_processing2.json']}, 'general': ['global_processing.json.json']}
+
+
 
 PROCESSING = generate_processing_dict(ROOT)
 PROCESSING_NAME = menu_from_dict(PROCESSING)
+PROCESSINGGLOBAL = generate_processing_dict(ROOT_PROCESSINGGLOBAL)
+PROCESSINGGLOBAL_NAME = menu_from_dict(PROCESSINGGLOBAL)
 
+print('MENU FROM DICT ', PROCESSING_NAME, '----------------')
 MEASUREMENT = generate_processing_dict(ROOT_MEASUREMENT)
 DISPLAY = generate_processing_dict(ROOT_DISPLAY)
 RANGEDISPLAY = generate_processing_dict(ROOT_RANGEDISPLAY)

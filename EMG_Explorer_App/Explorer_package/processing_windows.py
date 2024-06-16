@@ -1,10 +1,18 @@
 from .setup import *
 from .mainwindow_utils import Try_decorator,get_item_from_path
 from .custom_widget import ComboBoxExpandable
+from .processing_function import *
 
 logger = logging.getLogger('main')
 
+
+
 class OneSetting(pTypes.GroupParameter):
+    """Create One Groupe Parameter that will correspond to one function in the processing pipeline
+
+    Args:
+        pTypes (_type_): _description_
+    """
     delete_trigger = pyqtSignal('PyQt_PyObject')
     position_trigger = pyqtSignal('PyQt_PyObject','PyQt_PyObject')
 
@@ -20,22 +28,17 @@ class OneSetting(pTypes.GroupParameter):
         opts['value'] = True
         pTypes.GroupParameter.__init__(self, **opts)
 
-
-
-        # create parameters
-        # inspect.signature(self.function).parameters.keys()
-        # inspect.signature(self.function).parameters['order'].default
-# self.function.__name__
-        # self.var = self.function.__code__.co_varnames[:self.function.__code__.co_argcount]
+        # retrieve the name of the arguments of the function
         self.var = list(inspect.signature(self.function).parameters.keys())
-        # var_default = self.function.__defaults__
+        # retrieve the default value of the arguments of the function
         var_default = [inspect.signature(self.function).parameters[v].default if inspect.signature(self.function).parameters[v].default != inspect._empty else None for  v in self.var]
+        # add as many None value as there are arguments without default value
         if var_default:
             var_default = [None for i in range(len(self.var)-len(var_default))] + list(var_default)
         else:
             var_default = [None for i in range(len(self.var))]
         
-        #action
+        # action Delete and Position to the Groupe Parameter
         self.addChild({'name': 'Functionality', 'type': 'group', 'children': [
         {'name': 'Delete', 'type': 'action'},
         {'name' : 'Position', 'type':'str','value':self.position}
@@ -44,33 +47,33 @@ class OneSetting(pTypes.GroupParameter):
         self.param('Functionality','Position').sigValueChanged.connect(self.oc_position_handler)
 
 
-        #variables
+        # Add each argument as input field of the Parameter
         for i,v in enumerate(self.var):
-            
             d = var_default[i]
             if d:
                 self.addChild({'name': v, 'type': type(d).__name__, 'value': d, 'siPrefix': True})
             else:
                 self.addChild({'name': v})
-            self.param(v).sigValueChanged.connect(self.aChanged)
+            # self.param(v).sigValueChanged.connect(self.aChanged) // as illustration for future usage
 
         self.exefunction = None
     
     def oc_delete_handler(self):
-        print('in delete handler')
+        """ emit delete_trigger signal with the position of the element in the processing pipeline"""
         self.delete_trigger.emit(self.position)
 
     def oc_position_handler(self,param,val):
+        """ emit position_triggered signal with the position of the element in the processing pipeline and the value of the new position """
         self.position_trigger.emit(self.position,val)
 
-    def aChanged(self):
-        print(' a ')
-    
+    # def aChanged(self): // as illustration for future usage
+        # pass
         
+    
 
 
 class Filters():
-    """ParameterTree of filters
+    """ParameterTree that represents a Processing Pipeline. Filter is a composition of Group Parameter (Setting)
     """
     def __init__(self,list_f=None,path=None) -> None:
         self.listChildren = {} if not list_f else list_f
@@ -87,7 +90,8 @@ class Filters():
         """Add a filter
 
         Args:
-            val (_type_): _description_
+            c_f (function)
+            path (list): list of key to reach the function in a PROCESSING dicitonnary
         """
         base_name = f"{path[-1]}_[{'_'.join(path[:-1])}]_"
         val_fc = lambda x:  f"{base_name}{x}"
@@ -98,14 +102,10 @@ class Filters():
         for id,existingsetting in self.listChildren.items():
             if val == existingsetting.nameSetting:
                 while(val == existingsetting.nameSetting):
-
                     val = val_fc(i)
                     i += 1
-                    print('NEW SETTING chgt nom', val,existingsetting.nameSetting)
 
-                
-        
-        print('NEW SETTING', val)
+        # create and add a new setting that wil represents the function        
         setting = OneSetting(c_f,val,self.nb,self,path)
         setting.delete_trigger.connect(self.oc_delete)
         setting.position_trigger.connect(self.oc_position)
@@ -115,12 +115,13 @@ class Filters():
         self.nb += 1
 
     def clearTree(self):
+        """clear the Tree of filters"""
         self.p.clearChildren()
         self.listChildren = {}
         self.nb = 0
 
     def CreateTree(self):
-        print('In Tree Creation')
+        """Initialization of the Tree of Settings"""
         if self.path:
             self.p = Parameter.create(name='params', type='group',children=list(self.listChildren.values()))
             # self.LoadJson()
@@ -131,12 +132,13 @@ class Filters():
             self.tree.addParameters(self.p)
 
     def LoadJson(self,path):
-        # self.p.clearChildren()
+        """Load a JSON file which structure correspong to a dictionnary of Settings"""
+
         self.path = path
         f = open(self.path)
         data = json.load(f)
 
-
+        # add a Setting for each processing of the file
         for pos,process in data.items():
             pos = int(pos) 
 
@@ -152,17 +154,21 @@ class Filters():
             for name_arg,val_arg in process['arguments'].items():
                 # put the default value
                 self.listChildren[pos].param(name_arg).setValue(val_arg)
-                print(name_arg,val_arg,self.listChildren[pos].param(name_arg).value())
 
         
 
     def shift_position(self,new_nb,type,nb_current=None):
+        """Shift the proccessing of a pipeline by incrementing or decrementing their positions
+
+        Args:
+            new_nb (_type_): _description_
+            type (_type_): _description_
+            nb_current (_type_, optional): _description_. Defaults to None.
+        """
 
         if nb_current == None:
             print('shift default value')
             nb_current = self.nb 
-
-        print('shiiiii1iif',nb_current, 'to',new_nb)
 
         if type == 'add': # new_nb<nb_current
             for n in range(nb_current-1,new_nb-1,-1):
@@ -180,14 +186,17 @@ class Filters():
 
 
     def oc_delete(self,nb):
+        """Delete one Setting from the pipeline
+
+        Args:
+            nb (_type_): _description_
+        """
         self.p.removeChild(self.listChildren[nb])
         self.listChildren.pop(nb)
-        print('DELETE from', nb ,self.nb -1 )
         if nb == self.nb-1:
             pass
         else:
              for n in range(nb,self.nb -1):
-                print('del',n+1,'to',n)
                 self.listChildren[n] = self.listChildren[n+1]
                 self.listChildren[n].position = n 
                 self.listChildren[n].param('Functionality','Position').setValue(n,blockSignal=self.listChildren[n].oc_position_handler)
@@ -195,12 +204,12 @@ class Filters():
         self.nb -= 1
     
     def oc_position(self,nb,new_val):
-        print(nb,new_val)
+        """Change the position of one Setting"""
+
         new_val = int(new_val)
         self.p.removeChild(self.listChildren[nb])
         self.p.insertChild(new_val,self.listChildren[nb])
 
-        
         self.listChildren[nb].position = new_val
         if nb > new_val:
             print('shift add', nb,new_val)
@@ -214,6 +223,7 @@ class Filters():
             self.listChildren[new_val] = child
 
     def setting_to_json(self):
+        """Return a dict that describs the structure of the processign pipeline"""
         dictjson = {}
         for n in range(self.nb):
             setting = self.listChildren[n]
@@ -224,7 +234,10 @@ class Filters():
 
         return dictjson
 
+
+
 class SingleProcessing(QWidget):
+    """QWidget that manages the creation of a single processing pipeline for pre visualization."""
 
     processingSaved = pyqtSignal(str)
     apply = pyqtSignal()
@@ -236,11 +249,13 @@ class SingleProcessing(QWidget):
         self.p = parent
         loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\layout_singleProcessing.ui', self)
 
+        # Creation of the Tree
         self.paramtree = Filters(None)
         self.layout_setting.addWidget(self.paramtree.tree)
         self.button_openJson.clicked.connect(self.oc_openFilter)
         self.button_clearFilter.clicked.connect(self.paramtree.clearTree)
 
+        # Initialization and Instantiation of the comboBox for the Global Processing Selection
         self.comboExpandable = ComboBoxExpandable()
         self.comboExpandable.setData(PROCESSING_NAME)
         self.layout_expComboBox.addWidget(self.comboExpandable)
@@ -249,7 +264,6 @@ class SingleProcessing(QWidget):
         self.button_saveFilterAs.clicked.connect(self.oc_saveFilter)
         self.button_saveFilter.clicked.connect(lambda x :self.oc_saveFilter(save=True))
         self.button_apply.clicked.connect(lambda x : self.apply.emit())
-
 
         self.open_processing_path = []
 
@@ -265,7 +279,7 @@ class SingleProcessing(QWidget):
 
     
     def oc_add_filter(self,path):
-        """add a filter to the pipeline
+        """Add a filter to the pipeline
 
         Args:
             path (str): path to the clicked section of the menu. eg ['group 1','name']
@@ -273,6 +287,7 @@ class SingleProcessing(QWidget):
         self.paramtree.addNew(get_item_from_path(PROCESSING,path),path )
 
     def oc_saveFilter(self,save=False):
+        """Save the description of the processing pipeline in a JSON file"""
         dictjson = self.paramtree.setting_to_json()
 
         if not save:
@@ -329,19 +344,19 @@ class GroupParametersGlobalProcessing(QWidget):
         ]})
         self.paramsAdd = Parameter.create(name='Add', type='popupmenu', title= '+')
         self.groupParamters.child('Functionality').addChild(self.paramsAdd)
-        self.paramsAdd.setData(PROCESSING_NAME)
+        self.paramsAdd.setData(PROCESSINGGLOBAL_NAME)
 
-        self.paramsAdd.pathChanged.connect(lambda path : self.addNew(get_item_from_path(PROCESSING,path),path ))
+        self.paramsAdd.pathChanged.connect(lambda path : self.addNew(get_item_from_path(PROCESSINGGLOBAL,path),path ))
         self.groupParamters.param('Functionality','Delete').sigActivated.connect(self.oc_delete_handler)
 
         self.groupParamters.param('Functionality','Load').sigActivated.connect(self.oc_open)
-        # self.createParameters()   
-           
+
+
     def oc_delete_handler(self):
-        print('in delete handler')
         self.delete_trigger.emit(self.groupName)
 
     def getParameters(self):
+
         return self.groupParamters
     
     def addNew(self,processing,path):
@@ -350,6 +365,8 @@ class GroupParametersGlobalProcessing(QWidget):
         Args:
             val (_type_): _description_
         """
+
+        # create an unique name for the Parameter so it can be added to the Tree
         val_fc = lambda x: f"{path[-1]}_[{'_'.join(path[:-1])}]_{x} "
         val = val_fc(0)   
 
@@ -360,13 +377,13 @@ class GroupParametersGlobalProcessing(QWidget):
                     val = val_fc(i)
                     i += 1
 
+        # Add a new Filter to the pipeline
         setting = OneSetting(processing,val,self.nb,self,path)
         setting.delete_trigger.connect(self.oc_delete)
         setting.position_trigger.connect(self.oc_position)
         
         self.groupParamters.addChild(setting)
         self.listProcessing[self.nb] = setting
-        print('child param added pos:', self.nb,setting)
         self.nb += 1    
 
     def clearGroupParameters(self):
@@ -398,7 +415,7 @@ class GroupParametersGlobalProcessing(QWidget):
             if pos < self.nb:
                 pos+=self.nb
             # get function
-            func = get_item_from_path(PROCESSING,process['path'] )
+            func = get_item_from_path(PROCESSINGGLOBAL,process['path'] )
             # get path
             path = process['path']
             # add new
@@ -511,25 +528,28 @@ class GlobalProcessingTab(QWidget):
         self.button_open.clicked.connect(self.oc_open)
 
     def addNewGroupParameters(self,groupName):
+        """Add a New group of filters that will correspond to the processing of one variable"""
         if groupName not in list(self.globalProcessingDict.keys()):
             self.globalProcessingDict[groupName] = GroupParametersGlobalProcessing(groupName)
             self.globalProcessingTree.addParameters(self.globalProcessingDict[groupName].getParameters())
             self.globalProcessingDict[groupName].delete_trigger.connect(lambda name: self.oc_delete(name))
     
     def oc_delete(self,name):
+        """ Delete the processing of a variable"""
         self.globalProcessingDict.pop(name)
         self.globalProcessingTree.clear()
         for group in list(self.globalProcessingDict.keys()):
             self.globalProcessingTree.addParameters(self.globalProcessingDict[group].getParameters())
 
 
-
     def updateComboBox(self,data):
+        """Update the variable that should be accesssible for the creation of a processing pipeline"""
         self.comboBoxAddVar.clear()
         self.comboBoxAddVar.addItems(data)
 
 
     def setting_to_json(self):
+        """Return a description in the form of a dicitonnary of the processing structure"""
         dictjson = {}
         for k,v in self.globalProcessingDict.items():
             dictjson[k]= v.setting_to_json()
@@ -538,15 +558,18 @@ class GlobalProcessingTab(QWidget):
         return dictjson
     
     def oc_saveFilter(self):
+        """ Save the global processing in a JSON file"""
         dictjson = self.setting_to_json()
         namepath = QFileDialog.getSaveFileName(self, 'Save File',
                                        #"/home/jana/untitled.png",
                                        "Json (*.json)")
         if os.path.exists(f'{namepath[0]}.json'):
-            print('the file exist already')
+            logger.info(f'Gloabl Processing - Save - File not saved. The file {namepath[0]}.json already exists')
         else:
             with open(f'{namepath[0]}.json', 'w') as f:
                 json.dump(dictjson, f)
+                logger.info(f'Gloabl Processing - Save - File saved. The file {namepath[0]}.json has been saved.')
+
             self.processingSaved.emit(namepath[0])
 
     def oc_clear(self):
@@ -560,7 +583,6 @@ class GlobalProcessingTab(QWidget):
                                        #"/home/jana/untitled.png",
                                     #    "Json (*.json)")
         #open filter
-        print('path open is', path)
         self.loadJson(path[0])
 
 

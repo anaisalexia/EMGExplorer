@@ -1,67 +1,27 @@
 from .setup import *
-from .custom_widget import comboBoxCheckable,ComboBoxExpandable
+from .custom_widget import ComboBoxExpandable
 from .graph import create_menuJson
-from .mainwindow_utils import get_item_from_path,deleteItemsOfLayout
+from .mainwindow_utils import get_item_from_path,deleteItemsOfLayout,flatten
 from .loading_function import DATALOADER
 from . processing_function import dictOfFiles_from_EmbeddedFolders,ROOT_GLOBALPROCESSING,apply_jsonFilterGlobal
 from . processing_function import *
-
-
-def flatten(dictionary, parent_key=False, separator='.'):
-  
-    def isLeaf(items):
-        # is leaf if the value of the dictionnary is a simple dictionnary and has no embedded dicitonnary
-        if isinstance(items,dict):
-            for k,v in items.items():
-                if isinstance(v,dict):
-                    return False
-            return True
-        else:
-            return False
-    
-    def hasLeaf(items):
-        for k,v in items.items():
-            if not isinstance(v,dict):
-                return True
-        return False
-        
-
-    list_group = []
-
-    def recurse(attrs,key):
-        print(key)
-
-        if isLeaf(attrs):
-            list_group.append({key:attrs})
-        
-        elif hasLeaf(attrs):
-            new_attrs = {}
-            for k,v in attrs.items():
-                if not isinstance(v,dict):
-                    new_attrs[k] = v
-                else:
-                    recurse(v,key + "." + k)
-            list_group.append({key:new_attrs})
-                    
-        
-        else:
-            for k,v in attrs.items():
-                if isinstance(v,dict):
-                    recurse(v,str(key) + "." + str(k) if str(key) != "" else str(k))
-
-    recurse(dictionary,"")  
-    return list_group
-        
-ROOT_REPORT = "EMG_Explorer_App/Explorer_package/global_processing_pipelines/"
-DEFAULT_PATH_SAVE_SUMMARY = 'EMG_Explorer_App/Template/template'
 logger = logging.getLogger('main')
 
 
-class SummaryElement(QWidget):
 
+
+
+class SummaryElement(QWidget):
+    """Element of the Summary. Contains the parameters that enable the user to chose a metric and a display.
+
+    Args:
+        QWidget (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     position_changed = pyqtSignal(int,int)
     removed = pyqtSignal(str)
-    # comboBox_changed = pyqtSignal(dict)
 
     def __init__(self,position,variables,information = None):
         super().__init__()
@@ -81,8 +41,8 @@ class SummaryElement(QWidget):
 
         
 
-
     def init_layout(self):
+        """Initialisation of the layout of an element of the Summary"""
         self.lineEdit_position.setText(self.position)
 
         self.menu = QtWidgets.QMenu(self)
@@ -116,8 +76,10 @@ class SummaryElement(QWidget):
 
         self.lineEdit_position.textChanged.connect(self.oc_lineEdit_positionChanged)
 
+
     def init_information(self):
-        
+        """If default values have been given at the initialization, selects the default values for each component
+        """
         self.comboBox_measure.setText(self.information['Measure'][-1])
         self.comboBox_range.setCurrentText(self.information['Range'])
         self.comboBox_variables.setCurrentText(self.information['Variables'])
@@ -126,33 +88,41 @@ class SummaryElement(QWidget):
 
 
     def oc_remove(self,action):
-        print('EMIT REMOVE',self.position)
+        """ emit removed signal with the position of the element in the summary structure"""
         self.removed.emit(self.position)
 
     def getInfo(self):
+        """ return the components information of the element"""
         return self.information
 
     def oc_comboBoxChanged(self,arg,box):
         self.information[box] = arg
-        # print('EMIT COMBO CHANGED',self.information)
-        # self.comboBox_changed.emit(self.information)
 
     def oc_lineEdit_positionChanged(self,text):
+        """emit position_changed signal with the text input"""
         if text.isnumeric():
-            print('EMIT POSITION',self.position,'to',int(text))
             self.position_changed.emit(self.position,int(text))
             self.position = int(text)
         else:
             self.lineEdit_position.setText(self.position)
 
 
+
+
 class SummaryWindow(QWidget):
+    """Widget to create a Summary of metrics. Enables the user to save or open a structure of summary and creates its own.
+
+    Args:
+        QWidget (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
 
     generateSummary = pyqtSignal(dict)
 
     def __init__(self,parent):
         super().__init__()
-        # self.parent = parent
         loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\AnalysisWin.ui', self)
         self.p = parent
         self.path_globalProcessing = ['None']
@@ -161,7 +131,6 @@ class SummaryWindow(QWidget):
         self.init_interactivity()
 
         # SET UP
-        # self.processing = ''
         self.list_variables = []
 
         self.checkBox_current.setChecked(True)
@@ -169,7 +138,6 @@ class SummaryWindow(QWidget):
         self.file_list = []
         self.update_file_list()
         
-
         self.save_path = ''
         self.save_processing = False
 
@@ -181,29 +149,21 @@ class SummaryWindow(QWidget):
     
     
     def init_layout(self):
-
+        """ intialization of the layout """
         self.label_savePath.setWordWrap(True)
         self.init_comboBox_globalProcessing()
 
-        # self.comboExpandable_processing = ComboBoxExpandable()
-        # self.comboExpandable_processing.setData(PROCESSING_NAME)
-        # self.layout_comboBoxExpandable_processing.addWidget(self.comboExpandable_processing)
-
-        # menuJson = create_menuJson(PATH_GLOBAL_PIPELINE)
-        # self.comboExpandable_processing.append_element(['None'],self.comboExpandable_processing.menu())
-        # self.comboExpandable_processing.append_element(menuJson,self.comboExpandable_processing.menu())
-
-        # self.comboExpandable_processing.pathChanged.connect(self.oc_comboBoxExp)
 
     def init_interactivity(self):
-        # SET UP
+        """ Set up of the interactivity of the Summary owns components and of the Summary's elements """
+        # OWN SET UP
         self.checkBox_current.stateChanged.connect(self.oc_checkBoxCurrent)
         self.groupBox_load.clicked.connect(self.oc_groupBoxLoad)
         self.button_generate.clicked.connect(self.oc_buttonGenerate)
         self.button_select.clicked.connect(self.oc_buttonSelect)
         self.button_selectSavePath.clicked.connect(self.oc_buttonSelectSavePath)
 
-        # ELEMENTS
+        # ELEMENTS SET UP
         self.button_addElement.clicked.connect(self.oc_buttonAddElement)
         self.button_saveSummary.clicked.connect(self.oc_save)
         self.button_openSummary.clicked.connect(self.oc_open)
@@ -211,6 +171,7 @@ class SummaryWindow(QWidget):
 
 
     def init_comboBox_globalProcessing(self):
+        
         self.comboBoxGlobalProcessing = ComboBoxExpandable()
         self.update_comboBoxGlobalProcessing()
         self.layout_comboBoxExpandable_processing.addWidget(self.comboBoxGlobalProcessing)
@@ -247,15 +208,7 @@ class SummaryWindow(QWidget):
             return data
         else:
             return {}
-        
-    # def oc_comboBoxExp(self,path):
-    #     self.processing = path
 
-    # def oc_comboBoxGr(self,list_gr):
-    #     self.group_list = list_gr
-
-    # def oc_comboBoxVar(self,list_var):
-    #     self.var_list = list_var
 
     def oc_checkBoxCurrent(self,state):
         if state :
@@ -285,7 +238,6 @@ class SummaryWindow(QWidget):
                 self.file_list.append(file)
                 self.listWidget_path.addItem(file)
                                 
-
         
     def oc_buttonSelectSavePath(self):
         self.save_path = QFileDialog.getExistingDirectory(self, "Select Directory")
@@ -293,10 +245,15 @@ class SummaryWindow(QWidget):
 
 
     def oc_buttonGenerate(self):
+        """Generate a Summary following to the chosen elements of its structure
+        """
+
+        # retrive the information of each element of the summary interface
         self.dict_summaryElement = {}
         for i,element in self.dict_summaryElementsLayout.items():
             self.dict_summaryElement[i] = element.getInfo()
 
+        # check if a path to save the summary is selected
         if ((self.checkBox_saveProcessing.isChecked()) and (self.save_path == '')) :
             dlg = QtWidgets.QMessageBox.warning(self, '!','Missing Information')
 
@@ -307,27 +264,21 @@ class SummaryWindow(QWidget):
             'save processing':self.checkBox_saveProcessing.isChecked(),
             'summary elements':self.dict_summaryElement,
         }
-        print('SUMMARY GENERATION', dict_generation)
         # SUMMARY GENERATION {'processing': '', 'group list': [], 'variable list': [], 'file list': [],
         #                      'path save': 'C:/Users/mtlsa/Documents/UTC/GB05/TX/Python_EMGExplorer/data', 'save processing': False, 
         #                     'summary elements': {0: {'Measure': ['time_domain', 'dfa'], 'Range': 'channel', 'Display': ['display1', 'boxplot']}, 1: {'Measure': ['time_domain', 'lyapunov_exp'], 'Range': 'variable', 'Display': ['display1', 'sys']}}} 
 
-        input_template_path = r"EMG_Explorer_App/Template/template/templateSummary.html"
+        input_template_path = ROOT_TEMPLATE
         output_html_path = lambda file,suffix,x : f"{self.save_path}\\Summary_{file}_{suffix}_{x}.html"
 
-        # plotly_jinja_data = fig.to_html(full_html=False)
-        # #consider also defining the include_plotlyjs parameter to point to an external Plotly.js as described above
-
-
+        # initialization of the variable that will hold the string that describ each Display
         displays = []
 
-        # function_processing_dict = self.get_currentGlobalProcessingDict()
+        # global processing dictionnary
         function_processing_dict = dict_generation['processing']
-        # function_processing_path = get_item_from_path(PROCESSING,self.processing)
-        # dict_getData = {"channel":self.p.}
 
-        # For each file: generate a summary
 
+        ## For each file: generate a summary and/or save the filtered signals into new files
         for filepath in self.file_list:
             try:
                 displays = []
@@ -339,7 +290,7 @@ class SummaryWindow(QWidget):
                 displays += [f"<h4> {name_woFormat}</h4> "]
                 displays += [f"<p> {filepath}</p> "]
 
-
+                # Apply the global processing
                 loader = DATALOADER[f'.{type_format}'](filepath,name)
                 try:
                     apply_jsonFilterGlobal(loader,pathData=loader.getGroup(), pathFile=None,dictFile=function_processing_dict)
@@ -352,32 +303,34 @@ class SummaryWindow(QWidget):
                 # loader.save(path,variable,process)
                 try:
                     if dict_generation['save processing']:
-
-                        print('path save', self.save_path)
+                        
+                        # retrieve the suffix of the furtur saved file
                         saving_name_suffix = self.lineEdit_suffixFile.text()
-                        print('suffix',saving_name_suffix )
                         if saving_name_suffix == '':
                             saving_name_suffix = 'filtered'
 
+                        # For each variable  and proccesing of the global processing dictionnary
                         for variable,process in function_processing_dict.items():
+                            # the proccessing of a variable is applied to all group
                             for group in loader.getListGroup():
                                 variable_newName_fc = lambda x : f"{variable}_{self.get_currentGlobalProcessingName()[:-5]}_{x}"
                                 variable_newName = variable_newName_fc(0)
                                 variable_newName_nb = 0
 
-                                # create a name for the new filtered variable : Variable_NameProcessing_Nb
+                                # create a name for the new filtered variable that does not already exists in the present data : Variable_NameProcessing_Nb
                                 while variable_newName in loader.getListVariable():
                                     variable_newName_nb +=1
                                     variable_newName = variable_newName_fc(variable_newName_nb)
 
-                                # copy the processed data
+                                # copy the (processed) data into a new variable in the original data
                                 loader.setToDataOriginal(group, variable_newName,variable)
-                                # loader.data_original[group][variable_newName] = loader.data[group][variable].copy(deep=True)
+                                # // data_original[group][variable_newName] = loader.data[group][variable]
 
-                                # add attributs to the new data
-                                loader.setAttrs(group,variable_newName,process)
-                                # loader.data_original[group][variable_newName] = loader.data_original[group][variable_newName].assign_attrs({'Processing':str(process)})
+                                # add attributs to the new data variable
+                                loader.setAttrs(group,variable_newName,'Processing',process)
+                                # // data_original[group][variable_newName].assign_attrs({'Processing':str(process)})
                         
+                        # create a new file name so that the data are not overwritten
                         saving_name_nb = 0
                         saving_path_fc = lambda x : f'{self.save_path}\\{loader.getName().split('.')[0]}_{saving_name_suffix}_{x}.nc'
                         saving_path = saving_path_fc(saving_name_nb)
@@ -385,9 +338,11 @@ class SummaryWindow(QWidget):
                         while(os.path.exists(saving_path)):
                             saving_name_nb += 1
                             saving_path = saving_path_fc(saving_name_nb)
-                            
+                        
+                        #save the data
                         try:
-                            loader.data_original.to_netcdf(saving_path, mode = 'w')
+                            loader.saveData(saving_path)
+                            # // ex: loader.data_original.to_netcdf(saving_path, mode = 'w')
                             logger.info(f'File Saved : {saving_path}')
 
                         except Exception as e:
@@ -399,17 +354,28 @@ class SummaryWindow(QWidget):
 
 
                 ## SUMMARY ##
+                # retrieve the suffix to name the summary
                 suffixSummary = self.lineEdit_suffix.text()
+
+                # Create the html code for each element of the summary
                 for element in self.dict_summaryElement.values():
                     displays += [f"<h4> {element}</h4> "]
+
+                    # retrieve the components of the elements (eg functions and range) for computing the metric and the display
                     function_measure = get_item_from_path(MEASUREMENT,element['Measure'])
                     function_display = get_item_from_path(DISPLAY,element['Display'])
                     function_rangeDisplay = get_item_from_path(RANGEDISPLAY, element['RangeDisplay'])
-
                     list_var = element['Variables']
+
                     # Measurement
                     df_element = pd.DataFrame(None,columns=['Group','Var','Dim','Value'])
                     rows = []
+
+                    #Computes the metric for each group; vairable and channel to create a DataFrame such as 
+                    # EXEMPLE Channel
+                    #         Group      Var      Dim   Value
+                    #     0     /  Accelerations   X  3.897428
+                    #     1     /  Accelerations   Y  3.544009
 
                     for gr in loader.getListGroup():
                         for var in [list_var] if list_var != 'All' else loader.getListVariable():
@@ -430,10 +396,9 @@ class SummaryWindow(QWidget):
                                         rows.append(row)
 
 
-
                     df_element = pd.concat([df_element, pd.DataFrame(rows)])
 
-                    # Range
+                    # Range : Computes the mean of the computed metrics over the variables or groups as indicated in the element's range
                     all_range = ['Group','Var','Dim']
                     range_measure = element['Range']
                     df_range = None
@@ -447,6 +412,7 @@ class SummaryWindow(QWidget):
                         df_range = ['Group']
 
                     try:
+                        # if the metric need to be averaged
                         if df_range != None: 
                             df_element = df_element.groupby(df_range, group_keys=True)[['Value']].apply(lambda x : np.nanmean(x)).reset_index()
                             df_element = df_element.rename(columns={0:"Value"})
@@ -460,18 +426,19 @@ class SummaryWindow(QWidget):
                         displays += ["Error while averaging tge metrics"]
                         continue
 
-                    # EXEMPLE Channel
+                    # EXEMPLE no averaging Channel
                     #         Group      Var      Dim   Value
                     #     0     /  Accelerations   X  3.897428
                     #     1     /  Accelerations   Y  3.544009
                     #     2     /  Accelerations   Z  4.241707
 
-                    # EXEMPLE variable
+                    # EXEMPLE averaging over variable
                     #           Group    Var     Dim     Value
                     #     0     /  Accelerations  0    3.894381
                     
 
                     try:
+                        # creation of the html code corresponding to the display of the element
                         display = function_rangeDisplay(function_display,df_element)
                         # display = function_display(np.array(row['Value']))
                         displays += [f'<p> {gr} {var} </p>']
@@ -482,29 +449,31 @@ class SummaryWindow(QWidget):
                         continue
 
 
-
-                
-
+                # If a summary has been created: finalize the summary and save
                 if self.dict_summaryElement != {}:
                     dict_file = dict_generation.copy()
                     dict_file.pop('file list')
+                    # retrieve the attributs of a file
                     loader.loadAttributs()
                     param = flatten(loader.getAttrs())
                     logger.debug(param)
+
+                    # dictionnary for jinja rendering
                     data = {"data":dict_file,"fig":' '.join(displays),"params":param}
 
+                    # create a unique name for saving the summary and avoiding overwriting data
                     path_summarySave = output_html_path(name_woFormat,suffixSummary,0)
                     i = 0
                     while os.path.exists(path_summarySave) :
                         path_summarySave = output_html_path(name_woFormat,suffixSummary,i)
                         i += 1
 
-
+                    # SAve the summary
                     with open(path_summarySave, "w", encoding="utf-8") as output_file:
                         with open(input_template_path) as template_file:
-                            # print('Template rendered', data)
                             j2_template = Template(template_file.read())
                             output_file.write(j2_template.render(data ))
+
             
             except Exception as e:
                 logger.warning(f"Summary - An error occured during Summary generation of {filepath} : {e}")
