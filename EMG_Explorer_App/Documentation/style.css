@@ -1,0 +1,138 @@
+.p_summary{
+    margin-bottom: 20px;
+}
+
+.a_sum {
+    color: rgb(239, 239, 239);
+    text-decoration: none;
+  }
+
+.a_sum:hover {
+    color :rgb(151, 179, 225);
+
+}
+
+
+.func_info {
+    margin-left: 8%;
+    margin-bottom: 200px;
+    margin-top: 20px;
+}
+
+.arg_return_band{
+    background-color: rgb(235, 235, 235);
+    color: rgb(151, 179, 225);
+
+    padding: 5px;
+    padding-left: 10px;
+    font-weight: bold;
+}
+
+.func_name{
+    margin-top: 50px;
+    background-color: rgb(151, 179, 225);
+
+    padding: 10px;
+    padding-left: 18px;
+    font-weight: bold;
+    font-size: x-large;
+    letter-spacing: 1px;
+}
+
+body{
+    background-color: #2c2c2c;
+
+    color: rgb(37, 37, 37);
+    font:  1rem "Fira Sans", sans-serif;
+    align-items: stretch;
+    align-content: stretch;
+    height: 100%;
+
+    
+}
+
+.split{
+    width: 100%;
+    height: auto;
+}
+
+.filename{
+    color:  #2c2c2c;
+    font:  3rem "Fira Sans", sans-serif;
+
+    padding: 5px;
+    padding-left: 10px;
+    font-weight: bold;
+   
+}
+
+.split_main{
+    background-color: rgb(255, 255, 255);
+    position:absolute;
+    right: 0;
+    width:67vw;
+    float: right;
+    padding-left: 2.2vw;
+    padding-right: 3vw;
+  
+
+}
+
+.split_main img {
+    width: 80%;
+    height: auto;
+    display: block;
+    float: center;
+
+}
+
+.split_summary{
+    position:fixed;
+    height:inherit;
+    /* height: 100%; */
+    /* float: left; */
+    width: 23.6vw;
+    color: rgb(255, 255, 255);
+    padding-left: 3vw;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-right: 0.5vw;
+    overflow-y:scroll;
+
+    overflow-x:hidden;
+    top: 0;
+    bottom: 0;
+
+    
+
+
+}
+
+.a_child{
+    color :rgb(151, 179, 225);
+}
+
+.a_child:hover{
+    color: rgb(37, 37, 37);
+}
+
+
+/* width */
+::-webkit-scrollbar {
+    width: 10px;
+  }
+  
+  /* Track */
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  /* Handle */
+  ::-webkit-scrollbar-thumb {
+    background: #888;
+  }
+  
+  /* Handle on hover */
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }

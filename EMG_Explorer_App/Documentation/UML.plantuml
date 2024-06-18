@@ -1,0 +1,83 @@
+@startuml
+
+class EMGExplorer{
+    - dict_layout_graph
+    - dataLoader
+    - SummaryWindow
+}
+
+class MyDataLoader{
+
+}
+
+class MyDataLoaderNC{
+
+}
+
+Class OneGraph{
+    - layoutParameter
+    - Plot
+
+}
+Class LayoutParameterType{
+
+}
+
+Class LayoutParameter{
+
+}
+
+Class PlotGeneral{
+
+}
+
+Class Pg_MultiPlotWidget{
+
+}
+Class PlotLine{
+    -layoutParameter
+}
+Class FFT{
+    -layoutParameter
+
+}
+Class MultiplePlot{
+    -layoutParameter
+
+}
+
+EMGExplorer::dict_layout_graph *-- "*" OneGraph
+EMGExplorer::dataLoader *-- "*"MyDataLoader
+
+MyDataLoader <|-- MyDataLoaderNC
+
+PlotGeneral <|-- PlotLine
+PlotGeneral <|-- FFT
+PlotGeneral <|-- MultiplePlot
+
+Pg_MultiPlotWidget <|-- PlotLine
+Pg_MultiPlotWidget <|-- FFT
+Pg_MultiPlotWidget <|-- MultiplePlot
+
+PlotLine::layoutParameter *-- LayoutParameter
+
+OneGraph::layoutParameter *-- LayoutParameterType
+OneGraph::Plot *--- PlotGeneral
+
+
+class SummaryWindow{
+    - Elements
+}
+
+class SummaryElement{
+    - Metric
+    - RangeComputation
+    - Display 
+    - RangeDisplay
+
+}
+
+
+SummaryWindow::Elements *-- "*" SummaryElement
+EMGExplorer::SummaryWindow *--- SummaryWindow
+@enduml
