@@ -16,7 +16,6 @@ class OneSetting(pTypes.GroupParameter):
     delete_trigger = pyqtSignal('PyQt_PyObject')
     position_trigger = pyqtSignal('PyQt_PyObject','PyQt_PyObject')
 
-    @Try_decorator
     def __init__(self, c_f,name,pos,p,path):
         self.function = c_f
         self.path = path
@@ -302,13 +301,16 @@ class SingleProcessing(QWidget):
                 logger.info(f"Single Processing - Processing saved in file {namepath[0]} ")
 
         
-        else:            
-            with open(f'{self.open_processing_path}', 'w') as f:
-                json.dump(dictjson, f)
-            if os.path.exists(f'{self.open_processing_path}'):
-                logger.warning(f"Single Processing - Processing saved, the file {self.open_processing_path} has been overwritten ")
+        else:     
+            if self.open_processing_path != []:       
+                with open(f'{self.open_processing_path}', 'w') as f:
+                    json.dump(dictjson, f)
+                if os.path.exists(f'{self.open_processing_path}'):
+                    logger.warning(f"Single Processing - Processing saved, the file {self.open_processing_path} has been overwritten ")
+                else:
+                    logger.info(f"Single Processing - Processing saved in file {self.open_processing_path} ")
             else:
-                logger.info(f"Single Processing - Processing saved in file {self.open_processing_path} ")
+                logger.error(f"Single Processing - Processing could not be saved. No Path.")
 
 
 
@@ -350,7 +352,7 @@ class GroupParametersGlobalProcessing(QWidget):
         self.groupParamters.param('Functionality','Delete').sigActivated.connect(self.oc_delete_handler)
 
         self.groupParamters.param('Functionality','Load').sigActivated.connect(self.oc_open)
-
+        self.open_processing_path = []
 
     def oc_delete_handler(self):
         self.delete_trigger.emit(self.groupName)
@@ -395,64 +397,61 @@ class GroupParametersGlobalProcessing(QWidget):
                                        #"/home/jana/untitled.png",
                                     #    "Json (*.json)")
         #open filter
-        print('path open is', path)
+        self.open_processing_path = path[0]
+
         self.LoadJson(path[0])
     
 
     def LoadJson(self,path,data=None):
         # self.p.clearChildren()
-        if (path == None) and (data != None):
-            data = data
-        else:
-            self.path = path
-            f = open(self.path)
-            data = json.load(f)
-        
+        try:
+            if (path == None) and (data != None):
+                data = data
+            else:
+                self.path = path
+                f = open(self.path)
+                data = json.load(f)
+            
 
-        for pos,process in data.items():
-            pos = int(pos) 
+            for pos,process in data.items():
+                pos = int(pos) 
 
-            if pos < self.nb:
-                pos+=self.nb
-            # get function
-            func = get_item_from_path(PROCESSINGGLOBAL,process['path'] )
-            # get path
-            path = process['path']
-            # add new
-            self.addNew(func,path)
-            # change argument
-            for name_arg,val_arg in process['arguments'].items():
-                # put the default value
-                print(name_arg,val_arg,self.listProcessing[pos].param(name_arg).value())
-                self.listProcessing[pos].param(name_arg).setValue(val_arg)
-                print(name_arg,val_arg,self.listProcessing[pos].param(name_arg).value())
+                if pos < self.nb:
+                    pos+=self.nb
+                # get function
+                func = get_item_from_path(PROCESSINGGLOBAL,process['path'] )
+                # get path
+                path = process['path']
+                # add new
+                self.addNew(func,path)
+                # change argument
+                for name_arg,val_arg in process['arguments'].items():
+                    # put the default value
+                    self.listProcessing[pos].param(name_arg).setValue(val_arg)
+
+        except Exception as e:
+            logger.error(f"Global Processing - Loading Filter failed {path} : {e}")
 
 
     def shift_position(self,new_nb,type,nb_current=None):
         if nb_current == None:
-            print('shift default value')
             nb_current = self.nb
-
 
         # else:
         if type == 'add': # new_nb<nb_current
             for n in range(nb_current-1,new_nb-1,-1):
-                print('add',n,'to',n+1)
                 self.listProcessing[n+1] = self.listProcessing[n]
                 self.listProcessing[n+1].position = n + 1
                 self.listProcessing[n+1].param('Functionality','Position').setValue(n+1,blockSignal=self.listProcessing[n+1].oc_position_handler)
 
         elif type == 'del': # new_nb>nb_current
-            print('IN ELIF DEL',new_nb,nb_current )
             for n in range(nb_current,new_nb):
-                print('del',n+1,'to',n)
                 self.listProcessing[n] = self.listProcessing[n+1]
                 self.listProcessing[n].position = n 
                 self.listProcessing[n].param('Functionality','Position').setValue(n,blockSignal=self.listProcessing[n].oc_position_handler)
 
 
     def oc_delete(self,nb):
-        print(nb)
         self.groupParamters.removeChild(self.listProcessing[nb])
         self.listProcessing.pop(nb)
         if nb == self.nb-1:
@@ -467,34 +466,32 @@ class GroupParametersGlobalProcessing(QWidget):
         self.nb -= 1
     
     def oc_position(self,nb,new_val):
-        print('oc_posiiiiition',nb,new_val)
         new_val = int(new_val)
         self.groupParamters.removeChild(self.listProcessing[nb])
         self.groupParamters.insertChild(new_val+1,self.listProcessing[nb])
 
-        
         self.listProcessing[nb].position = new_val
         if nb > new_val:
-            print('shift add', nb,new_val)
             child = self.listProcessing[nb]
             self.shift_position(new_val,'add',nb)
             self.listProcessing[new_val] = child
         if new_val > nb:
-            print('shift del',nb,new_val)
             child = self.listProcessing[nb]
             self.shift_position(new_val,'del',nb)
             self.listProcessing[new_val] = child
 
     def setting_to_json(self):
         dictjson = {}
-        for n in range(self.nb):
-            setting = self.listProcessing[n]
-            dictjson[n]={'name':setting.function.__name__,
-                        'process name': setting.nameSetting,
+        try:
+            for n in range(self.nb):
+                setting = self.listProcessing[n]
+                dictjson[n]={'name':setting.function.__name__,
+                            'process name': setting.nameSetting,
 
-                         'path':setting.path,
-                         'arguments':dict(zip(setting.var,[setting.param(v).value() for v in setting.var]))}
-
+                            'path':setting.path,
+                            'arguments':dict(zip(setting.var,[setting.param(v).value() for v in setting.var]))}
+        except Exception as e:
+            logger.error(f"Global Processing - Filters could not be saved. : {e}")
         return dictjson
 
 
@@ -523,7 +520,8 @@ class GlobalProcessingTab(QWidget):
         self.globalProcessingDict = {}
 
         self.comboBoxAddVar.textActivated.connect(self.addNewGroupParameters)
-        self.button_save.clicked.connect(self.oc_saveFilter)
+        self.button_saveAs.clicked.connect(self.oc_saveFilter)
+        self.button_save.clicked.connect(lambda x: self.oc_saveFilter(save=True))
         self.button_clear.clicked.connect(self.oc_clear)
         self.button_open.clicked.connect(self.oc_open)
 
@@ -557,20 +555,35 @@ class GlobalProcessingTab(QWidget):
         print(dictjson)
         return dictjson
     
-    def oc_saveFilter(self):
+    def oc_saveFilter(self,save= False):
         """ Save the global processing in a JSON file"""
         dictjson = self.setting_to_json()
-        namepath = QFileDialog.getSaveFileName(self, 'Save File',
-                                       #"/home/jana/untitled.png",
-                                       "Json (*.json)")
-        if os.path.exists(f'{namepath[0]}.json'):
-            logger.info(f'Gloabl Processing - Save - File not saved. The file {namepath[0]}.json already exists')
-        else:
-            with open(f'{namepath[0]}.json', 'w') as f:
-                json.dump(dictjson, f)
-                logger.info(f'Gloabl Processing - Save - File saved. The file {namepath[0]}.json has been saved.')
 
-            self.processingSaved.emit(namepath[0])
+        if not save:
+            namepath = QFileDialog.getSaveFileName(self, 'Save File',
+                                        #"/home/jana/untitled.png",
+                                        "Json (*.json)")
+            if os.path.exists(f'{namepath[0]}.json'):
+                logger.info(f'Gloabl Processing - Save - File not saved. The file {namepath[0]}.json already exists')
+            else:
+                with open(f'{namepath[0]}.json', 'w') as f:
+                    json.dump(dictjson, f)
+                    logger.info(f'Gloabl Processing - Save - File saved. The file {namepath[0]}.json has been saved.')
+
+                self.processingSaved.emit(namepath[0])
+
+        else:
+            if self.open_processing_path != []:       
+                with open(f'{self.open_processing_path}', 'w') as f:
+                    json.dump(dictjson, f)
+                if os.path.exists(f'{self.open_processing_path}'):
+                    logger.warning(f"Single Processing - Processing saved, the file {self.open_processing_path} has been overwritten ")
+                else:
+                    logger.info(f"Single Processing - Processing saved in file {self.open_processing_path} ")
+            else:
+                logger.error(f"Single Processing - Processing could not be saved. No Path.")
+
+
 
     def oc_clear(self):
         self.globalProcessingTree.clear()

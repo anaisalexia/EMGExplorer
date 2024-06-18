@@ -399,6 +399,7 @@ class PlotLine(pg.MultiPlotWidget):
 
     def clearGraph(self):
         self.plot.clear()
+        self.setInformation(title = '', xlabel = '',  ylabel = '')
 
 
 
@@ -428,16 +429,50 @@ class PlotLine(pg.MultiPlotWidget):
         if self.currentPath[0] == 'None':
             pass
         else:
-            if self.currentPath[0] == NAME_JSONFOLDER:
-                y = apply_jsonFilter(self.plotData['y'],self.currentPath[1])
-                self.plotData['y'] =y
+            try:
+                if self.currentPath[0] == NAME_JSONFOLDER:
+                    y = apply_jsonFilter(self.plotData['y'],self.currentPath[1])
+                    self.plotData['y'] =y
 
-            else:
-                func = get_item_from_path(PROCESSING,self.currentPath)
-                self.plotData['y']=func(self.plotData['y'])
+                else:
+                    func = get_item_from_path(PROCESSING,self.currentPath)
+                    self.plotData['y']=func(self.plotData['y'])
+            except Exception as e:
+                logger.error(f'PlotLine - Filter could not be applied : {e}')
 
 
 
+##########
+# None #
+#######
+
+class NonePlot(pg.MultiPlotWidget):
+    __metaclass__ = PlotGeneral
+
+     
+    def __init__(self, layout, layout_graph, i, parent):
+        PlotGeneral.__init__(self,layout, layout_graph, i, parent)
+        pg.MultiPlotWidget.__init__(self)
+      
+        self.l = LayoutParameters2()
+        self.function = 'None'
+
+
+
+    def get_dataPath(self):
+        return 
+
+    def setInformation(self,**kwargs):
+        pass
+
+
+    def draw(self,loader=None,path=None,**kwargs):
+        
+        pass
+
+
+    def clearGraph(self):
+        pass
 
 
 ###########################
@@ -520,6 +555,7 @@ class FFT(pg.MultiPlotWidget):
 
     def clearGraph(self):
         self.plot.clear()
+        self.setInformation(title = '', xlabel = '',  ylabel = '')
 
 
 
@@ -755,6 +791,8 @@ class MultiplePlot2(pg.MultiPlotWidget):
     def clearGraph(self):
         for i in range(self.column):
             self.plot[i].clear()
+        self.setInformation(title = '', xlabel = '',  ylabel = '')
+
 
 
 

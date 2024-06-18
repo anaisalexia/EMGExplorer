@@ -118,7 +118,7 @@ class OneGraph():
         # Init layout of the parameters box
         # create the combobox to choose the type of plot
         self.ui_parameters = Layout_Parameters_Type(self.parent)
-        for fc in [None] + list(PLOT.keys()):
+        for fc in ['None'] + list(PLOT.keys()):
             self.ui_parameters.comboBox_type.addItem(fc)
         self.layout_parameters = layout_parameters
         self.selectedData = None
@@ -142,7 +142,6 @@ class OneGraph():
     def add_paramUi_to_layout(self):
         """Changes the Parameters tab of the graph, to display the setting of the selected graph
         """
-        print('add layout ')
         deleteItemsOfLayout(self.layout_parameters)
         self.layout_parameters.addWidget(self.ui_parameters)
         self.parent.tabWidget.setCurrentIndex(0)
@@ -175,12 +174,17 @@ class OneGraph():
         """Changes the type of graph of the current box
         """
         type_ = self.ui_parameters.comboBox_type.currentText()
-        if type_:
+        if type_ != 'None' :
             # add a plot to the layout of the graph layout 
             self.setPlot(PLOT[type_])
             # add the setting of the plot to the graph setting
             self.add_graphUi_to_layout()
             self.update_drawing()
+        elif type_ == 'None':
+            if self.ui_graph != None:
+                self.ui_graph.clearGraph()
+                self.ui_graph = None
+
         else:
             self.ui_graph.clearGraph()
 
@@ -257,7 +261,7 @@ class OneGraph():
         Returns:
             _type_: _description_
         """
-        state = {'id':self.id,
+        state = {'id': self.id,
                  'type' : self.ui_parameters.comboBox_type.currentText(),
                  'selectedDataState' : self.ui_parameters.saveState()}
         print(state)

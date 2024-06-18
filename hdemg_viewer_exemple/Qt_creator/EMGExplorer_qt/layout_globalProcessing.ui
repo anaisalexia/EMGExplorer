@@ -95,13 +95,6 @@
         </property>
        </widget>
       </item>
-      <item>
-       <widget class="QPushButton" name="button_summary">
-        <property name="text">
-         <string>Quick Summary ?</string>
-        </property>
-       </widget>
-      </item>
      </layout>
     </widget>
    </item>

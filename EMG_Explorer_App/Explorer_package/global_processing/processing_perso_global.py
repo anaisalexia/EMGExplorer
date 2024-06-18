@@ -7,42 +7,6 @@ from requirement_processing_perso_global import *
 
 
 
-def DecoratorGlobal(function):
-    # @functools.wraps(function)
-    @functools.wraps(function)
-    def wrapper(**arg):
-        loader = arg['loader']
-        path = arg['path']
-        del arg['path']
-        del arg['loader']
-        print("Decorator Global in")
-        for k,v in arg.items():
-            if v == None:
-                del arg[k]
-        for gr in path.keys():
-            for var in path[gr].keys():
-                for dim in path[gr][f'{var}'].keys():
-                    for ch in path[gr][f'{var}'][dim]:
-                        x = np.array(loader.getData(gr,var,dim,ch))
-                        arg['x'] = x
-                        y = function(x,**arg)
-
-                        loader.setData(gr,f'{var}',dim,ch,y)
-                        print('Dataset')
-
-    # wrapper.__signature__ = inspect.signature(function)   
-    # wrapper.__name__ = function.__name__   
-
-    return wrapper
-
-
-
-def empty_value_check(emg):
-    if type(emg) != pd.core.series.Series:
-        emg = pd.Series(emg)
-    out = emg.isnull().values.any() #is null detects missing values for an array-like object, values takes the values of the pandas series and any detects if there is any True
-    return out
-
 
 
 
@@ -90,20 +54,20 @@ def butterfilter_dual(emg, order=2,c_f =10,type = 'lowpass', s_f = SAMPLING_RATE
     return emg_filtered
   
 
-@DecoratorGlobal
-def fir_filter(emg,c_f=10,nb_taps=5, type='lowpass', s_f = SAMPLING_RATE,*arg,**kargs):
-    assert not empty_value_check(emg),'Empty values emg filter'
-    assert type in ['lowpass', 'highpass'], 'type of filter not valid'
-    filtered_emg = np.ones_like(emg)
-    b = signal.firwin(nb_taps, c_f, pass_zero=type, fs=s_f)
-    filtered_emg[:-nb_taps//2] = signal.lfilter(b,1, emg)[nb_taps//2:]
-    filtered_emg[-nb_taps//2:] = np.mean(filtered_emg)
+# @DecoratorGlobal
+# def fir_filter(emg,c_f=10,nb_taps=5, type='lowpass', s_f = SAMPLING_RATE,*arg,**kargs):
+#     assert not empty_value_check(emg),'Empty values emg filter'
+#     assert type in ['lowpass', 'highpass'], 'type of filter not valid'
+#     filtered_emg = np.ones_like(emg)
+#     b = signal.firwin(nb_taps, c_f, pass_zero=type, fs=s_f)
+#     filtered_emg[:-nb_taps//2] = signal.lfilter(b,1, emg)[nb_taps//2:]
+#     filtered_emg[-nb_taps//2:] = np.mean(filtered_emg)
     
-    return filtered_emg
+#     return filtered_emg
   
 
 @DecoratorGlobal
-def butterfilter_bandpass_dual(emg, order=2,c_f_low=10,c_f_high=5, s_f = SAMPLING_RATE,*arg,**kargs):
+def butterfilter_bandpass_dual(emg, order=2,c_f_low=5,c_f_high=300, s_f = SAMPLING_RATE,*arg,**kargs):
 
     assert not empty_value_check(emg),'Empty values emg filter bandpass'
     [b,a] = signal.butter(order,[c_f_low,c_f_high],btype='bandpass',analog=False, output='ba',fs=s_f)
@@ -115,8 +79,9 @@ def butterfilter_bandpass_dual(emg, order=2,c_f_low=10,c_f_high=5, s_f = SAMPLIN
 
 
 @DecoratorGlobal
-def notch_filter(emg, f0 = None , fl = None , fh = None):
+def notch_filter(emg, f0 = 50 , fl = 49 , fh = 51):
 
+    q = 50
     if  not f0:
         assert fl, 'missing value'
         assert fh, 'missing value'
@@ -133,13 +98,13 @@ def notch_filter(emg, f0 = None , fl = None , fh = None):
 
 
 
-@DecoratorGlobal
-def comb_filter(emg,f0,ft,fs=SAMPLING_RATE,q=100.0):
+# @DecoratorGlobal
+# def comb_filter(emg,f0,ft,fs=SAMPLING_RATE,q=100.0):
 
-    output_emg = emg.copy()
-    for i in range(1,ft//f0 +1):
-        b, a = signal.iirnotch(f0*i, q, fs=fs)
-        output_emg = signal.filtfilt(b, a, output_emg)
+#     output_emg = emg.copy()
+#     for i in range(1,ft//f0 +1):
+#         b, a = signal.iirnotch(f0*i, q, fs=fs)
+#         output_emg = signal.filtfilt(b, a, output_emg)
 
-    return output_emg
+#     return output_emg
 

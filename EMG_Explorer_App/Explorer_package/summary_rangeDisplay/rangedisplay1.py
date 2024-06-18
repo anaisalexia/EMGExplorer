@@ -1,7 +1,7 @@
 import sys
 sys.path.append('EMG_Explorer_App/Explorer_package/summary_rangeDisplay')
 
-from requirement_display1 import *
+from requirement_rangedisplay1 import *
 
 def forAllRows(function,df:pd.DataFrame,**arg):
 

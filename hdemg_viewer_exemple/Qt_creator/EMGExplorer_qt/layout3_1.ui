@@ -27,10 +27,10 @@
        </sizepolicy>
       </property>
       <property name="frameShape">
-       <enum>QFrame::Box</enum>
+       <enum>QFrame::NoFrame</enum>
       </property>
       <property name="frameShadow">
-       <enum>QFrame::Plain</enum>
+       <enum>QFrame::Sunken</enum>
       </property>
      </widget>
      <widget class="QFrame" name="frame_ld_2">
@@ -41,7 +41,7 @@
        </sizepolicy>
       </property>
       <property name="frameShape">
-       <enum>QFrame::Box</enum>
+       <enum>QFrame::NoFrame</enum>
       </property>
       <property name="frameShadow">
        <enum>QFrame::Plain</enum>
@@ -51,6 +51,12 @@
         <widget class="QSplitter" name="splitter_ld_2">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="opaqueResize">
+          <bool>true</bool>
+         </property>
+         <property name="childrenCollapsible">
+          <bool>true</bool>
          </property>
          <widget class="QFrame" name="frame_ld_2_1_graph">
           <property name="sizePolicy">
@@ -66,7 +72,7 @@
            </size>
           </property>
           <property name="frameShape">
-           <enum>QFrame::Box</enum>
+           <enum>QFrame::NoFrame</enum>
           </property>
           <property name="frameShadow">
            <enum>QFrame::Sunken</enum>
@@ -86,7 +92,7 @@
            </size>
           </property>
           <property name="frameShape">
-           <enum>QFrame::Box</enum>
+           <enum>QFrame::NoFrame</enum>
           </property>
           <property name="frameShadow">
            <enum>QFrame::Sunken</enum>

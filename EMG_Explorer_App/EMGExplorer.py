@@ -1,4 +1,8 @@
 # from Explorer_package.requirement import *
+import sys, os
+sys.path.append(os.getcwd())
+sys.path.append("..")
+
 from Explorer_package import *
 from Explorer_package.loading_function import *
 from PyQt5.QtCore import Qt
@@ -28,7 +32,7 @@ logger.addHandler(streamHandler)
 CURRENT_PATH_LOG_INFO = f"{PAHT_LOG}log {str(now).replace(":","-")}.log"
 f = open(CURRENT_PATH_LOG_INFO, "x")
 f.close()
-loggerFile = logging.FileHandler(filename=f'./log {str(now).replace(":","-")}.log', mode = "w")
+loggerFile = logging.FileHandler(filename=CURRENT_PATH_LOG_INFO, mode = "w")
 loggerFile.setLevel(logging.INFO)
 logger.addHandler(loggerFile)
 
@@ -536,7 +540,7 @@ class EMGExplorer(QMainWindow):
         # save graph
         settings.setValue('Nb Graph',len(self.dict_layout_graph))
         for id,graph in self.dict_layout_graph.items():
-            settings.setValue(f'graph {i}',graph.saveState())
+            settings.setValue(f'graph {id}',graph.saveState())
 
         # save Processing global
         settings.setValue('globalProcessingPath',self.path_globalProcessing)

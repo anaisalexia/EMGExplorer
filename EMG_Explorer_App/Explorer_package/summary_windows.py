@@ -473,6 +473,7 @@ class SummaryWindow(QWidget):
                         with open(input_template_path) as template_file:
                             j2_template = Template(template_file.read())
                             output_file.write(j2_template.render(data ))
+                            logger.info(f"Summary - Summary saved. Dile {path_summarySave}")
 
             
             except Exception as e:
