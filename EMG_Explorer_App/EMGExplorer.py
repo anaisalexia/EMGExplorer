@@ -15,6 +15,11 @@ pg.setConfigOption('foreground', 'k')
 pg.setConfigOption('background', 'w')
 
 
+__author__ = "A. Monteils"
+__copyright__ = "A. Monteils"
+__license__ = "GPLv3.0"
+
+
 # https://github.com/fbjorn/QtWaitingSpinner
 
 
