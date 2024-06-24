@@ -18,6 +18,7 @@ Install the environnement with .yaml file or dependencies with requirements.txt
 
 In EMG Explorer App, run EMGExplorer.py
 
+![Image of the interface](./Documentation/Image_Instructions/mainWindow.png)
 
 ## Authors
 
