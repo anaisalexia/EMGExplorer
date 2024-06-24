@@ -156,7 +156,7 @@ class EMGExplorer(QMainWindow):
 
         ## MENU
         # Definition of the action
-        self.actiontype_1.triggered.connect(self.oc_actiontype1)
+        # self.actiontype_1.triggered.connect(self.oc_actiontype1)
         self.actionNew.triggered.connect(self.oc_newFilter)
         self.actionRun_Analysis.triggered.connect(self.oc_newSummary)
         self.actionLoad.triggered.connect(self.oc_load_files)
@@ -409,19 +409,19 @@ class EMGExplorer(QMainWindow):
         self.w.show()
         
     
-    def oc_action1(self):
-        self.oc_actiontype1()
+    # def oc_action1(self):
+    #     self.oc_actiontype1()
 
 
 
-    def oc_actiontype1(self):
-        self.dock[self.nb_dock] = QDockWidget('dock',self)
-        self.dock[self.nb_dock].setObjectName(f'dock {self.nb_dock}')
+    # def oc_actiontype1(self):
+    #     self.dock[self.nb_dock] = QDockWidget('dock',self)
+    #     self.dock[self.nb_dock].setObjectName(f'dock {self.nb_dock}')
 
-        self.dock[self.nb_dock].visibilityChanged.connect(partial(self.oc_visibility,self.nb_dock))
-        self.dock[self.nb_dock].setFloating(False)
-        self.addDockWidget(Qt.RightDockWidgetArea,self.dock[self.nb_dock])
-        self.nb_dock +=1
+    #     self.dock[self.nb_dock].visibilityChanged.connect(partial(self.oc_visibility,self.nb_dock))
+    #     self.dock[self.nb_dock].setFloating(False)
+    #     self.addDockWidget(Qt.RightDockWidgetArea,self.dock[self.nb_dock])
+    #     self.nb_dock +=1
 
 
     def oc_visibility(self,dock,visibility):
