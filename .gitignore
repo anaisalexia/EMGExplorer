@@ -3,6 +3,8 @@ hdemg_viewer_exemple/
 
 # ignore the data
 data/
+!data/HD_sEMG_test/Processed_Example/
+
 Log/
 !Log/log.txt
 
