@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />   <!--It is necessary to use the UTF-8 encoding with plotly graphics to get e.g. negative signs to render correctly -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+
+<body>
+<h1> Information
+</h1>
+
+<ul>{% for key, value in data.items() %}<li>{{ key }}: {{ value }}</li>{% endfor %}</ul>
+<!-- {{ info }} -->
+<!-- add Date / heure -->
+<p> Figures </p>
+{{ fig }}
+
+<h5>Parameters</h5>
+    <ul>
+        {% for element in params[::-1]: %}
+            {% for key,value in element.items() %}
+            {% if 'Variables' in key.split('.') %}
+            <br>    
+                <li><strong>{{'.'.join(key.split('.')[:-2]) + ' Variable'}}</strong>
+                    <ul>
+                        <li><strong>{{key.split('.')[-1]}}</strong>
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Value</th>
+                                </tr>
+                                </thead>
+                                {% for nameAttrs,valAttrs in value.items() %}
+                                <tr>
+                                    <td>{{nameAttrs}}</td>
+                                    <td>{{valAttrs}}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </li>
+                    </ul>
+                </li>
+            {% else %}
+            <br>
+                <li><strong>{{key}}</strong>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Value</th>
+                    </tr>
+                    </thead>
+                    {% for name,val in value.items() %}
+                    <tr>
+                        <td>{{name}}</td>
+                        <td>{{val}}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                </li>
+            {% endif %}
+            {% endfor %}
+
+        {% endfor %}
+    </ul>
+
+</body>
+</html>
