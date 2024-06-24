@@ -481,12 +481,12 @@ class MyDataLoaderNC(MyDataLoader):
         """Return a list of the variables in a group"""
         if group != None:
             group_dict = self.dict_group[group]
-            return list(group_dict.keys())
+            return list(set(list(group_dict.keys())))
         else:
             list_var = []
             for gr in self.getListGroup():
                 list_var += list(self.dict_group[gr].keys())
-            return list_var
+            return list(set(list_var))
         
     def getListDimension(self,group=None,var=None):
         """Return the list of dimension of a variable in a group if specified 
@@ -531,14 +531,14 @@ class MyDataLoaderNC(MyDataLoader):
             if var != None:
                 group_var = group_dict[var]
                 if dim==None : return group_var[list(group_var.keys())[0]]
-                else: return group_var[dim]
+                else: return list(set(group_var[dim]))
             else:
                 list_ch = []
                 for var in self.getListVariable(group):
                     for dim in self.getListDimension(group,var) if dim == None else [dim]:
                         group_var = group_dict[var]
                         list_ch += group_var[dim].values()
-                return list_ch
+                return list(set(list_ch))
             
         else:
             list_ch = []
@@ -547,7 +547,7 @@ class MyDataLoaderNC(MyDataLoader):
                     for dim in self.getListDimension(gr,var) if dim == None else [dim]:
                         group_var = group_dict[var]
                         list_ch += group_var[dim].values()
-            return list_ch
+            return list(set(list_ch))
 
 
 

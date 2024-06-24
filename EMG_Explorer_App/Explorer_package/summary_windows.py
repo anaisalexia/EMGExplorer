@@ -486,7 +486,7 @@ class SummaryWindow(QWidget):
         name = os.path.split(filepath)[-1]
         type_format = name.split('.')[-1]
         loader = DATALOADER[f'.{type_format}'](filepath,name)
-        self.list_variables = loader.getListVariable()
+        self.list_variables = set(loader.getListVariable())
 
 
     def oc_buttonAddElement(self):

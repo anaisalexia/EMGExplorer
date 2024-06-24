@@ -84,7 +84,6 @@ class Filters():
         self.CreateTree()
 
     
-    @Try_decorator
     def addNew(self,c_f,path):
         """Add a filter
 
@@ -552,7 +551,6 @@ class GlobalProcessingTab(QWidget):
         for k,v in self.globalProcessingDict.items():
             dictjson[k]= v.setting_to_json()
 
-        print(dictjson)
         return dictjson
     
     def oc_saveFilter(self,save= False):

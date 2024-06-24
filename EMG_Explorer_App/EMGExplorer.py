@@ -683,7 +683,7 @@ class EMGExplorer(QMainWindow):
         Load the attributs of the new selected file.
         """    
         # update the variable shown in Global Processing Widget
-        self.widget_globalProcessing.updateComboBox(self.get_currentLoader().getListVariable())
+        self.widget_globalProcessing.updateComboBox(set(self.get_currentLoader().getListVariable()))
 
         # Update the comboBox group and chose the last selected group name if any
         last_selection = self.comboBox_group.currentText()
