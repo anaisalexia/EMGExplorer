@@ -50,7 +50,7 @@ from jinja2 import Template
 PATH_QT_UI = 'EMG_Explorer_App/QT_Ui/Layouts/'
 
 
-PATH_PIPELINE = 'EMG_Explorer_App/Explorer_package/processing pipelines/'
+PATH_PIPELINE = 'EMG_Explorer_App/Explorer_package/processing_pipelines/'
 PATH_GLOBAL_PIPELINE = 'EMG_Explorer_App/Explorer_package/global_processing_pipelines/'
 PAHT_LOG = 'EMG_Explorer_App/Log/'
 

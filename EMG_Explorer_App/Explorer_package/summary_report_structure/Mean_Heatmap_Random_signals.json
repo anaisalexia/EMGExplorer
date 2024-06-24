@@ -1,0 +1,1 @@
+{"0": {"Measure": ["measurement1", "mean"], "Range": "channel", "Display": ["display1", "annotatedHeatmap8"], "Variables": "HDsEMG", "RangeDisplay": ["rangedisplay1", "forAllGroupdf"]}, "1": {"Measure": ["measurement1", "noChange"], "Range": "channel", "Display": ["display1", "displaySig"], "Variables": "HDsEMG", "RangeDisplay": ["rangedisplay1", "randomRows"]}}
