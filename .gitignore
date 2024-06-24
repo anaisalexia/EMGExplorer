@@ -1,16 +1,21 @@
 # ignore the exemple
 hdemg_viewer_exemple/
-!hdemg_viewer_exemple/Qt_creator/EMGExplorer_qt
 
 # ignore the data
 data/
+Log/
+!Log/log.txt
 
 EMG_Explorer_App/note.txt
 EMG_Explorer_App/Template/
-EMG_Explorer_App/Explorer_package/summary_display
-EMG_Explorer_App/Explorer_package/summary_measurement
 EMG_Explorer_App/Explorer_package/global_processing_pipelines
+EMG_Explorer_App/Explorer_package/processing pipelines
 EMG_Explorer_App/Explorer_package/summary_report_structure
-# except
+
+
+# ignore __pycache__
+**/__pycache__/
+EMG_Explorer_App/__pycache__
 EMG_Explorer_App/Explorer_package/__pycache__
 EMG_Explorer_App/Explorer_package/processing/__pycache__
+EMG_Explorer_App/Explorer_package/summary_rangeDisplay/__pycache__
