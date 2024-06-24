@@ -25,7 +25,7 @@ class SummaryElement(QWidget):
 
     def __init__(self,position,variables,information = None):
         super().__init__()
-        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\layout_element_summary.ui', self)
+        loadUi(PATH_QT_UI + 'layout_element_summary.ui', self)
         self.position = str(position)
         self.variables = ['All'] + variables
 
@@ -123,7 +123,7 @@ class SummaryWindow(QWidget):
 
     def __init__(self,parent):
         super().__init__()
-        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\AnalysisWin.ui', self)
+        loadUi(PATH_QT_UI + 'AnalysisWin.ui', self)
         self.p = parent
         self.path_globalProcessing = ['None']
 

@@ -44,7 +44,7 @@ class LayoutParameters(QWidget):
 
     def __init__(self,):
         super().__init__()
-        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\parameters_graph.ui', self)
+        loadUi(PATH_QT_UI + 'parameters_graph.ui', self)
         self.init_interface()
         self.init_interactivity()
 
@@ -90,7 +90,7 @@ class LayoutParameters2(QWidget):
 
     def __init__(self,):
         super().__init__()
-        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\parameters_graph2.ui', self)
+        loadUi( PATH_QT_UI + 'parameters_graph2.ui', self)
 
     def interactivity(self):
         pass
@@ -98,7 +98,7 @@ class LayoutParameters2(QWidget):
 
 
     
-class LayoutParameters_MultiplePlot2(QWidget):
+class LayoutParameters_MultiplePlot(QWidget):
     """Layout of the parameters of a Multiple channels Plots
 
     Args:
@@ -107,7 +107,7 @@ class LayoutParameters_MultiplePlot2(QWidget):
 
     def __init__(self,):
         super().__init__()
-        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\parameters_multiplot2.ui', self)
+        loadUi( PATH_QT_UI + 'parameters_multiplot2.ui', self)
 
     def update_nbChannel(self):
         self.spinBox_nbChannel.setValue(np.ceil(self.spinBox_limit.value() / (self.spinBox_nbColumn.value())))
@@ -353,7 +353,6 @@ class PlotLine(pg.MultiPlotWidget):
 
         # Extract the data to draw in forms of a list of xarray from the loader and the path
         data = extracteDatafromLoaderPath(self.lastLoader,self.lastPath)
-        logger.debug(f"Graph - Extracted data {data }")
 
         # Set up the plot's informations
         title = extractTitlefromPath(path=self.lastPath)
@@ -576,7 +575,7 @@ class DataItemPath(pg.PlotDataItem):
         self.path = kargs['path']
 
 
-class MultiplePlot2(pg.MultiPlotWidget):
+class MultiplePlot(pg.MultiPlotWidget):
     """Plot to display multiple channels.
 
     Args:
@@ -591,7 +590,7 @@ class MultiplePlot2(pg.MultiPlotWidget):
         PlotGeneral.__init__(self,layout, layout_graph, i, parent)
         pg.MultiPlotWidget.__init__(self)
 
-        self.l = LayoutParameters_MultiplePlot2()
+        self.l = LayoutParameters_MultiplePlot()
         self.function = 'multiple_plot2'
         self.lastLoader = None
         self.lastPath = None
@@ -766,9 +765,11 @@ class MultiplePlot2(pg.MultiPlotWidget):
             self.plot[i//nb_line].enableAutoRange(True)
             self.plot[i//nb_line].enableAutoRange(True)
             self.line[i].setCurveClickable(True,10)
-            text_label = pg.LabelItem(str(ch))
+
+            # Text label test
+            # text_label = pg.LabelItem(str(ch))
             # text_label.setParentItem(self.plot[0].graphicsItem())
-            text_label.setParentItem(self.line[i])
+            # text_label.setParentItem(self.line[i])
             # text_label.autoAnchor((0.1,0.1),True)  
 
             self.line[i].sigClicked.connect(self.itemClicked)
@@ -804,6 +805,6 @@ PLOT = {
     'fft':FFT,
     'plotline':PlotLine,
     # 'multiple_plot':MultiplePlot,
-    'multiple_plot2':MultiplePlot2
+    'multiple_plot2':MultiplePlot
 }
 

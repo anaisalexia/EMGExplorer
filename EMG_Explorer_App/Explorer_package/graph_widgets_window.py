@@ -13,7 +13,7 @@ class Layout(QWidget):
     """
     def __init__(self,nb,nb_v=1):
         super().__init__()
-        loadUi(f'hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\Layout{nb}_{nb_v}.ui', self)
+        loadUi(PATH_QT_UI + f'Layout{nb}_{nb_v}.ui', self)
 
 
 class Layout_Parameters_Type(QWidget):
@@ -31,7 +31,7 @@ class Layout_Parameters_Type(QWidget):
     def __init__(self,p=None):
         self.parent = p
         super().__init__()
-        loadUi( 'hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\layout_parameters_type.ui',self)
+        loadUi( PATH_QT_UI + 'layout_parameters_type.ui',self)
         self.layout_param = self.vlayout_parameters
         self.selectedData = {}
         self.selectedDataPath = {}
@@ -299,7 +299,7 @@ class WindowChannelSelection(QWidget):
     
     def __init__(self,parent):
         super().__init__()
-        loadUi('hdemg_viewer_exemple\Qt_creator\EMGExplorer_qt\Form_selection_channels.ui', self)
+        loadUi(PATH_QT_UI + 'Form_selection_channels.ui', self)
         self.p = parent
         self.dictSelection = {}
 

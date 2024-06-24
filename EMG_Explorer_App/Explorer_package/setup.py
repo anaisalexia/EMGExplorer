@@ -47,9 +47,12 @@ from abc import ABC, abstractmethod
 from jinja2 import Template
 
 # CONSTANT
+PATH_QT_UI = 'EMG_Explorer_App/QT_Ui/Layouts/'
+
+
 PATH_PIPELINE = 'EMG_Explorer_App/Explorer_package/processing pipelines/'
 PATH_GLOBAL_PIPELINE = 'EMG_Explorer_App/Explorer_package/global_processing_pipelines/'
-PAHT_LOG = 'Log/'
+PAHT_LOG = 'EMG_Explorer_App/Log/'
 
 ROOT = 'EMG_Explorer_App\Explorer_package\processing'
 ROOT_PROCESSINGGLOBAL = 'EMG_Explorer_App\Explorer_package\global_processing'

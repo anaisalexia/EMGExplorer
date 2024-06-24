@@ -84,7 +84,9 @@ def apply_jsonFilterGlobal(loader,pathData,pathFile=None,dictFile=None):
                         for k,v in arg_copy.items():
                             if v == None:
                                 del arg[k]
-                        arg['path'] = pathData
+                        # arg['path'] = pathData
+                        arg['path'] = {gr:{var: pathData[gr][var]}}
+
                         arg['loader'] = loader
                         func(**arg) 
 

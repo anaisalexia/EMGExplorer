@@ -246,7 +246,7 @@ class SingleProcessing(QWidget):
         
         # Loading of the UI
         self.p = parent
-        loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\layout_singleProcessing.ui', self)
+        loadUi( PATH_QT_UI + 'layout_singleProcessing.ui', self)
 
         # Creation of the Tree
         self.paramtree = Filters(None)
@@ -512,7 +512,7 @@ class GlobalProcessingTab(QWidget):
         super().__init__()
         
         # Loading of the UI
-        loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\layout_globalProcessing.ui', self)
+        loadUi(PATH_QT_UI + 'layout_globalProcessing.ui', self)
         self.p = parent
 
         self.globalProcessingTree = ParameterTree()

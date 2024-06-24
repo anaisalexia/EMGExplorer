@@ -53,17 +53,6 @@ def butterfilter_dual(emg, order=2,c_f =10,type = 'lowpass', s_f = SAMPLING_RATE
 
     return emg_filtered
   
-
-# @DecoratorGlobal
-# def fir_filter(emg,c_f=10,nb_taps=5, type='lowpass', s_f = SAMPLING_RATE,*arg,**kargs):
-#     assert not empty_value_check(emg),'Empty values emg filter'
-#     assert type in ['lowpass', 'highpass'], 'type of filter not valid'
-#     filtered_emg = np.ones_like(emg)
-#     b = signal.firwin(nb_taps, c_f, pass_zero=type, fs=s_f)
-#     filtered_emg[:-nb_taps//2] = signal.lfilter(b,1, emg)[nb_taps//2:]
-#     filtered_emg[-nb_taps//2:] = np.mean(filtered_emg)
-    
-#     return filtered_emg
   
 
 @DecoratorGlobal
@@ -88,7 +77,7 @@ def notch_filter(emg, f0 = 50 , fl = 49 , fh = 51):
         q = np.sqrt(fl*fh)/(fh-fl)
         f0 = fl + (fh-fl)/2
     else:
-        q = 50.0 # how to choose the value ?
+        q = 50.0 
 
     b, a = signal.iirnotch(f0, q, SAMPLING_RATE)
     output_emg = signal.filtfilt(b, a, emg)
@@ -97,14 +86,4 @@ def notch_filter(emg, f0 = 50 , fl = 49 , fh = 51):
 
 
 
-
-# @DecoratorGlobal
-# def comb_filter(emg,f0,ft,fs=SAMPLING_RATE,q=100.0):
-
-#     output_emg = emg.copy()
-#     for i in range(1,ft//f0 +1):
-#         b, a = signal.iirnotch(f0*i, q, fs=fs)
-#         output_emg = signal.filtfilt(b, a, output_emg)
-
-#     return output_emg
 

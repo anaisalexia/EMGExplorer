@@ -23,24 +23,46 @@ pg.setConfigOption('background', 'w')
 logger = logging.getLogger('main')
 logging.basicConfig( format='%(name)s - %(levelname)s - %(message)s', level=logging.DEBUG) 
 
-# Stream handler
+# Stream handler : to retrieve the log messages when they are emitted
 streamHandler = logging.StreamHandler(log_stream)
 logger.addHandler(streamHandler)
 
+#formatter
+class OneLineFormatter(logging.Formatter):
+    def formatException(self, exc_info):
+        """
+        Format an exception so that it prints on a single line.
+        """
+        result = super().formatException(exc_info)
+        return repr(result)  # or format into one line however you want to
+
+    def format(self, record):
+        s = super().format(record)
+        if record.exc_text:
+            s = s.replace('\n', '') + '|'
+        return s
+    
 # File Handler
 # Information
 CURRENT_PATH_LOG_INFO = f"{PAHT_LOG}log {str(now).replace(":","-")}.log"
 f = open(CURRENT_PATH_LOG_INFO, "x")
 f.close()
 loggerFile = logging.FileHandler(filename=CURRENT_PATH_LOG_INFO, mode = "w")
+formatterFile = OneLineFormatter('%(asctime)s|%(levelname)s|%(message)s|',
+                                  '%H:%M:%S')
+loggerFile.setFormatter(formatterFile)
 loggerFile.setLevel(logging.INFO)
 logger.addHandler(loggerFile)
 
 ## Debug
-CURRENT_PATH_LOG_DEBUG = f'./logdebug.log'
+CURRENT_PATH_LOG_DEBUG = f'{PAHT_LOG}logdebug.log'
 if os.path.exists(CURRENT_PATH_LOG_DEBUG) == False : f = open(CURRENT_PATH_LOG_DEBUG, "x");f.close()
 loggerDebugFile = logging.FileHandler(filename=CURRENT_PATH_LOG_DEBUG, mode = "w")
 loggerDebugFile.setLevel(logging.DEBUG)
+
+formatterDebug = OneLineFormatter('%(asctime)s|%(levelname)s|%(message)s|',
+                                  '%d/%m/%Y %H:%M:%S')
+loggerDebugFile.setFormatter(formatterDebug)
 logger.addHandler(loggerDebugFile)
 
 class OutputHandler(logging.Handler,QWidget):
@@ -58,14 +80,17 @@ class OutputHandler(logging.Handler,QWidget):
 
     def emit(self, record):
         if record.levelno != logging.DEBUG:
-            self.log_received.emit(record.getMessage())
+            currentDateAndTime = datetime.now()
+            currentTime = currentDateAndTime.strftime("%H:%M:%S")
+
+            self.log_received.emit(f"{record.levelname.upper()} [{currentTime} ] : {record.filename} -  {record.getMessage()}")
 
 
 class LogWindow(QWidget):
     def __init__(self):
         super().__init__()
         # Loading of the UI
-        loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\main_log_layout.ui', self)
+        loadUi(PATH_QT_UI +'main_log_layout.ui', self)
         self.label_log.setWordWrap(True)
         self.label_wholeLog.setWordWrap(True)
         self.scrollArea_log.setVisible(False) 
@@ -86,7 +111,7 @@ class LogWindow(QWidget):
     
     def update_log(self,arg=None):
         if self.bool_logInfo:
-            f  = open(CURRENT_PATH_LOG_INFO, "r")
+            # f  = open(CURRENT_PATH_LOG_INFO, "r")
             self.label_wholeLog.setText(log_stream.getvalue())
         
   # --------- END LOGGER ---------------------
@@ -104,7 +129,7 @@ class EMGExplorer(QMainWindow):
     def __init__(self):
         super().__init__()
         # Loading of the UI
-        loadUi('hdemg_viewer_exemple\\Qt_creator\\EMGExplorer_qt\\EMGExplorer_mainwindow_base2.ui', self)
+        loadUi( PATH_QT_UI +'EMGExplorer_mainwindow_base.ui', self)
 
         # Initialisation Log
         self.log = LogWindow()
@@ -320,7 +345,7 @@ class EMGExplorer(QMainWindow):
             try:
                 plot.update_drawing()
             except Exception as e:
-                logger.error(f"Update drawing - error {e}")
+                logger.error(f"Main Interface - Update drawing - error {e}")
 
 
     def update_list_layout_graph(self):
@@ -583,12 +608,19 @@ class EMGExplorer(QMainWindow):
         """Removes all the stored files from the listWidget and dictionnary of Loaders"""
         self.listWidget_file.clear()
         self.dataLoader = {}
+        # clear combobox
+        self.comboBox_group.clear()
+        self.comboBox_variable.clear()
+        self.comboBox_dim.clear()
+
+
+
 
     
 
     # file system update  
     def update_fileSystem_comboBox_Group(self):
-        """Add the groups'name corresponding to the selected file to the dedicated comboBox
+        """Add the groups'names corresponding to the selected file to the dedicated comboBox
         """
         # remove previous items
         self.comboBox_group.clear()
@@ -638,7 +670,6 @@ class EMGExplorer(QMainWindow):
             self.label_timeline_dim.setText('no dim')
             self.comboBox_dim.addItem('None')
 
-        # self.updateAllGraph()
 
 
     # file system interactivity
@@ -655,11 +686,11 @@ class EMGExplorer(QMainWindow):
         self.comboBox_group.setCurrentIndex(np.max([0,self.comboBox_group.findText(last_selection)])) 
         # findText returns -1 if there is no match
 
-        # update comboBox variable
+        # update comboBox group
         self.oc_comboBox_group_change()
-        self.oc_comboBox_variable_change()
+        # self.oc_comboBox_variable_change()
 
-        # load attrs
+        # load attributs
         loader = self.get_currentLoader()
         loader.loadAttributs()
 
@@ -674,29 +705,39 @@ class EMGExplorer(QMainWindow):
         """
         # update the list of variables and chose the last selected variable if there is a matche
         last_selection = self.comboBox_variable.currentText()
+        # update the variables list
         self.update_fileSystem_comboBox_Variable()
         # looks for a match between the last selected variable and the new list of variables
         foundText = self.comboBox_variable.findText(last_selection)
+        # set the combobox to the first item of the list or to the precedent item
         self.comboBox_variable.setCurrentIndex(np.max([0,foundText]))
 
-        #clear the plot if the last variable selected is not in the new list
-        if foundText == -1:
-            self.clearAllPlot()
+        # update the variables
+        self.oc_comboBox_variable_change()
 
-        else:
-            self.updateAllGraph()
+        # #clear the plot if the last variable selected is not in the new list
+        # if foundText == -1:
+        #     self.clearAllPlot()
+
+        # else:
+        #     # self.updateAllGraph()
+        #     pass
 
       
     def oc_comboBox_variable_change(self,):
         """Updates the list of displayable channels are changed and the graph are updated
         """
+        # update combobox Channel (dimension)
         self.update_fileSystem_comboBox_Channel()
+
+        # update the graph
         self.updateAllGraph()
 
 
     def oc_comboBox_dim_change(self,):
         """Updates the graphs
         """
+        # update the graph
         self.updateAllGraph()
 
 

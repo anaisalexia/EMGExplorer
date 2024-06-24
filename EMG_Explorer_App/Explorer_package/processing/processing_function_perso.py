@@ -31,8 +31,8 @@ def normalization_peak(emg):
     return emg / peak * 100
 
 
-def rolling_function(emg,win = 50,func=np.mean,unit='sec'):
-    if unit == 'sec': win_frame = int(win*SAMPLING_RATE)
+def rolling_function(emg,win = 50,func=np.mean,unit='pts',fs=SAMPLING_RATE):
+    if unit == 'sec': win_frame = int(win*fs)
     else: win_frame = int(win)
     res = [np.NAN for i in range(win_frame//2)]
 
@@ -41,7 +41,7 @@ def rolling_function(emg,win = 50,func=np.mean,unit='sec'):
         res.append(val)
 
     res += [np.NAN for i in range(win_frame//2)]
-    assert len(emg) == len(res),'emg and "rolled emg" not same length'
+    assert len(emg) == len(res),f'emg and "rolled emg" not same length, {len(emg)} , {len(res)}'
     return res
 
 

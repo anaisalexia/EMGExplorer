@@ -12,6 +12,14 @@ SAMPLING_RATE = 1000
 
 
 def DecoratorGlobal(function):
+    """Apply a function, usually a "global processing function", to all the channel of a path
+
+    Args:
+        function (function): function to apply to a set of data
+
+    Returns:
+        _type_: _description_
+    """
     # @functools.wraps(function)
     @functools.wraps(function)
     def wrapper(**arg):
@@ -19,7 +27,7 @@ def DecoratorGlobal(function):
         path = arg['path']
         del arg['path']
         del arg['loader']
-        print("Decorator Global in")
+
         for k,v in arg.items():
             if v == None:
                 del arg[k]
@@ -32,7 +40,6 @@ def DecoratorGlobal(function):
                         y = function(x,**arg)
 
                         loader.setData(gr,f'{var}',dim,ch,y)
-                        print('Dataset')
 
     # wrapper.__signature__ = inspect.signature(function)   
     # wrapper.__name__ = function.__name__   
@@ -42,6 +49,14 @@ def DecoratorGlobal(function):
 
 
 def empty_value_check(emg):
+    """Check empty values, returns a bool
+
+    Args:
+        emg (ndarray / pd.Series): _description_
+
+    Returns:
+        bool: True if there is at least one empty value
+    """
     if type(emg) != pd.core.series.Series:
         emg = pd.Series(emg)
     out = emg.isnull().values.any() #is null detects missing values for an array-like object, values takes the values of the pandas series and any detects if there is any True
