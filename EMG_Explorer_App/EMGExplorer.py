@@ -471,10 +471,20 @@ class EMGExplorer(QMainWindow):
             state = settings.value("windowState", QByteArray())
             self.restoreState(state)
 
-            self.nb_layout = settings.value("nb_layout", QByteArray())
-            self.nb_version = settings.value("nb_version", QByteArray())
-            self.layout = Layout(self.nb_layout,self.nb_version)
-            self.gridLayout_3.addWidget(self.layout)
+            # restore layout graph
+            try:
+                self.nb_layout = settings.value("nb_layout", QByteArray())
+                self.nb_version = settings.value("nb_version", QByteArray())
+                self.layout = Layout(self.nb_layout,self.nb_version)
+                self.gridLayout_3.addWidget(self.layout)
+            except Exception as e:
+                try:
+                    self.layout = Layout(3,1)
+                    self.gridLayout_3.addWidget(self.layout)
+                except Exception as e2:
+                    logger.error(f'Restore layout - Default layout could not be restored. Open a new layout: Windows -> Layout 3 : {e2}')
+
+
 
             # restore splitters state
             for splitter in self.findChildren(QSplitter):
@@ -483,7 +493,7 @@ class EMGExplorer(QMainWindow):
                     if splitterSettings:
                         splitter.restoreState(splitterSettings)
                 except Exception as e:
-                    print(e)
+                    logger.error('Restore - Splitter states could not be restored')
 
             #restore dock
             self.nb_dock = 0
@@ -520,7 +530,7 @@ class EMGExplorer(QMainWindow):
                 state = settings.value(f'graph {id}')
                 graphId = state['id']
                 self.dict_layout_graph[graphId].restoreState(state)
-        except Exception as e:
+        except Exception as e:                
             logger.error(f'Restore Setting - Graph settings could not be restored : {e}')
 
     def restoreGlobalProcessing(self):
@@ -534,7 +544,11 @@ class EMGExplorer(QMainWindow):
             self.path_globalProcessing = settings.value('globalProcessingPath')
             self.comboBoxGlobalProcessing.setText(self.path_globalProcessing[-1])
         except Exception as e:
-            logger.error(f'Restore Setting - Global Processing settings could not be restored : {e}')
+            try:
+                #default global processing
+                self.comboBoxGlobalProcessing.setText('None')
+            except Exception as e:
+                logger.error(f'Restore Setting - Default Global Processing settings could not be restored : {e}')
 
     def closeEvent(self, event):
         """Function triggered when the mainwindow is closed. It saves the stats if the layout, splitters, Graphs and Global Processing.
