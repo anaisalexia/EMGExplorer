@@ -27,7 +27,7 @@ class SummaryElement(QWidget):
         super().__init__()
         loadUi(PATH_QT_UI + 'layout_element_summary.ui', self)
         self.position = str(position)
-        self.variables = ['All'] + variables
+        self.variables = ['All'] + list(variables)
 
         self.information = {'Measure': [''],
                             'Range': 'channel',
