@@ -214,9 +214,6 @@ class EMGExplorer(QMainWindow):
 
     
 
-
-
-
     #### Global processing ComboBox ####
     def init_comboBoxGlobalProcessing(self):
         self.comboBoxGlobalProcessing = ComboBoxExpandable()

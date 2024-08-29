@@ -65,7 +65,8 @@ ROOT_GLOBALPROCESSING = 'EMG_Explorer_App\Explorer_package\global_processing_pip
 ROOT_REPORT = "EMG_Explorer_App/Explorer_package/global_processing_pipelines/"
 DEFAULT_PATH_SAVE_SUMMARY = 'EMG_Explorer_App/Template/template'
 
-ROOT_TEMPLATE = r"EMG_Explorer_App/Template/template/templateSummary.html"
+# ROOT_TEMPLATE = r"EMG_Explorer_App/Template/template/templateSummary.html" # first template
+ROOT_TEMPLATE = r"EMG_Explorer_App/Template/template/templateSummaryv2.html"
 
 # from .processing_function import MEASUREMENT,MEASUREMENT_NAME,DISPLAY,DISPLAY_NAME,PROCESSING,PROCESSING_NAME
 
