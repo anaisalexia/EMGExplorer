@@ -27,12 +27,21 @@ In EMG Explorer App, run EMGExplorer.py
 Anaïs Monteils
 With the supervision of J. Laforet, K. Ghiatt, S, Rampnoux, C. Leblanc, A. Mazzolini
 
-## To do
+## To do :cake:
 
 - Remove functions that are useless 
 - Complete the implementation of the interactivity of the parameters layout of multi-channels visualization
 - Expand tests and log feedbacks
 - Complete UML !!
+- Add input for sampling frequency in the Parameter Layout of FFT plot
+- Can a decorator placed above processing function like "@GlobalProcessing" concatenate multiple channels ?
+
+## Puppies contributions :dog: (ie complexe improvement, ie new features :sparkles:)
+
+- Real time acquisition and visualization
+- Image from signals visualization
+- Direct image handling, visualization  and processing
+
 
 ## License
 
