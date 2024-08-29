@@ -29,10 +29,10 @@ With the supervision of J. Laforet, K. Ghiatt, S, Rampnoux, C. Leblanc, A. Mazzo
 
 ## To do
 
-- Remove functions that are useless in Loader class (their are from a past architecture)
+- Remove functions that are useless 
 - Complete the implementation of the interactivity of the parameters layout of multi-channels visualization
 - Expand tests and log feedbacks
-- Complete UML
+- Complete UML !!
 
 ## License
 
