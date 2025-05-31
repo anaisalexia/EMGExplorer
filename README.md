@@ -29,12 +29,12 @@ With the supervision of J. Laforet, K. Ghiatt, S, Rampnoux, C. Leblanc, A. Mazzo
 
 ## To do :cake:
 
-- Remove functions that are useless 
 - Complete the implementation of the interactivity of the parameters layout of multi-channels visualization
 - Expand tests and log feedbacks
 - Complete UML !!
 - Add input for sampling frequency in the Parameter Layout of FFT plot
 - Can a decorator placed above processing function like "@GlobalProcessing" concatenate multiple channels ?
+- Threading
 
 ## Puppies contributions :dog: (ie complexe improvement, ie new features :sparkles:)
 
